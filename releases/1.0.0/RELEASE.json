@@ -1,0 +1,63 @@
+{
+  "formatVersion": 1,
+  "engineApi": 1,
+  "bundleVersion": "1.0.0",
+  "distribution": "public-unverified",
+  "games": [
+    {
+      "id": "games.wavegames.connect-four",
+      "title": "Connect Four",
+      "version": "1.0.0",
+      "players": "2",
+      "file": "WaveGames-Connect-Four-1.0.0.wavegame",
+      "packageDigest": "71cb38139c6469fc6dc5d5b65e968b555460732bfc52e15285fcb8f7aa9e1dc6",
+      "sha256": "ac472f26ac6b6b833613cba23b0115b4aef8d22cf309afe61bfe70d7dcf1e4cc",
+      "bytes": 29060,
+      "checks": 9
+    },
+    {
+      "id": "games.wavegames.checkers",
+      "title": "Checkers",
+      "version": "1.0.0",
+      "players": "2",
+      "file": "WaveGames-Checkers-1.0.0.wavegame",
+      "packageDigest": "529ae12ff320ce62c8e06a14ba223fb8d3c307a7cfab94c2a7b2bb99160fa6d1",
+      "sha256": "aef3a19f50f253adc7cdc68a38f85ee95a5b29021cfb4f115821ce5574a01a54",
+      "bytes": 44036,
+      "checks": 12
+    },
+    {
+      "id": "games.wavegames.chess",
+      "title": "Chess",
+      "version": "1.0.0",
+      "players": "2",
+      "file": "WaveGames-Chess-1.0.0.wavegame",
+      "packageDigest": "86a545b57bdb8e76b7b9c61266b6b1c56855e1d507867cf986c20acee361ab50",
+      "sha256": "c154a75e1684d4557c5f76afaa352756e9528bfb40143503e1d8c7648072b538",
+      "bytes": 76581,
+      "checks": 16
+    },
+    {
+      "id": "games.wavegames.go",
+      "title": "Go",
+      "version": "1.0.0",
+      "players": "2",
+      "file": "WaveGames-Go-1.0.0.wavegame",
+      "packageDigest": "b47c4779fb0110aba8daf9506ae66fa10ed865b8703de59d5e3c91b20fb67295",
+      "sha256": "d713373a4ab88c884f80ca35364d43872bd24304bfd3b1fec0103a06825792ea",
+      "bytes": 49729,
+      "checks": 11
+    },
+    {
+      "id": "games.wavegames.uno",
+      "title": "UNO",
+      "version": "1.0.0",
+      "players": "2-8",
+      "file": "WaveGames-UNO-1.0.0.wavegame",
+      "packageDigest": "407e422ac031141d3b0f6ab5d3bf1ca4b73974b8c27a6df9dc3f62346f445ae8",
+      "sha256": "a7350af99b44dbdbe6d50fad7126c06765147952fb43b743dbe0f65424e85237",
+      "bytes": 78659,
+      "checks": 23
+    }
+  ]
+}

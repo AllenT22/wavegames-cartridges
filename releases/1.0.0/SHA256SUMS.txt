@@ -1,0 +1,8 @@
+ac472f26ac6b6b833613cba23b0115b4aef8d22cf309afe61bfe70d7dcf1e4cc  WaveGames-Connect-Four-1.0.0.wavegame
+aef3a19f50f253adc7cdc68a38f85ee95a5b29021cfb4f115821ce5574a01a54  WaveGames-Checkers-1.0.0.wavegame
+c154a75e1684d4557c5f76afaa352756e9528bfb40143503e1d8c7648072b538  WaveGames-Chess-1.0.0.wavegame
+d713373a4ab88c884f80ca35364d43872bd24304bfd3b1fec0103a06825792ea  WaveGames-Go-1.0.0.wavegame
+a7350af99b44dbdbe6d50fad7126c06765147952fb43b743dbe0f65424e85237  WaveGames-UNO-1.0.0.wavegame
+3c9fd23b24bc60894ae35bead88eeb1980e3c011c1124d45d4b82b206d86072d  WaveGames-Cartridge-Example-Sources-1.0.0.zip
+c9eebf6b514502922fa8d9de08c10e9af3ee6d7f57c573afb02e2bc5ff6016d2  RELEASE.json
+8b73f59fcf4543bf35a8358675961dcfe80df219a198d46377d17b103365ad36  TESTING.md

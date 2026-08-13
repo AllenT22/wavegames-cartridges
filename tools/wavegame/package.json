@@ -1,0 +1,24 @@
+{
+  "name": "@wavegames/developer-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "wavegame": "bin/wavegame.mjs",
+    "wavegame-build-first-party": "bin/build-first-party.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./sdk/determinism-guard": "./sdk/determinism-guard.mjs",
+    "./sdk/game-client": "./sdk/wavegames-sdk.mjs",
+    "./sdk/simulation-host": "./sdk/simulation-host.mjs"
+  },
+  "types": "src/types.d.ts",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "build:first-party": "node bin/build-first-party.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "formatVersion": 1,
+  "id": "games.wavegames.chess",
+  "version": "1.0.0",
+  "title": {
+    "en": "Chess",
+    "ja": "チェス"
+  },
+  "description": {
+    "en": "Complete two-player chess with castling, en passant, promotion, standard draw rules, and rematches.",
+    "ja": "キャスリング、アンパッサン、昇格、標準の引き分け、再戦に対応した2人用チェスです。"
+  },
+  "icon": "assets/icon.svg",
+  "engineApi": 1,
+  "entrypoints": {
+    "rules": "rules/index.mjs",
+    "ui": "ui/index.html"
+  },
+  "orientation": "any",
+  "capabilities": [],
+  "modes": {
+    "local": {
+      "minPlayers": 2,
+      "maxPlayers": 2
+    },
+    "wave": {
+      "minPlayers": 2,
+      "maxPlayers": 2,
+      "pace": "turn-based"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="color-scheme" content="dark">
+    <title>Chess</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main>
+      <header class="masthead">
+        <div>
+          <p id="seat" class="eyebrow">Connecting…</p>
+          <h1>Chess</h1>
+        </div>
+        <div id="turn" class="turn-chip">Waiting for host</div>
+      </header>
+
+      <section class="game-layout">
+        <div class="play-column">
+          <article id="black-player" class="player-card dark-player">
+            <span class="piece-mark">♚</span>
+            <span><strong id="black-name">Black</strong><small id="black-state">Waiting</small></span>
+          </article>
+
+          <div class="board-frame">
+            <div id="board" class="board" role="grid" aria-label="Chess board"></div>
+          </div>
+
+          <article id="white-player" class="player-card light-player">
+            <span class="piece-mark">♔</span>
+            <span><strong id="white-name">White</strong><small id="white-state">To move</small></span>
+          </article>
+        </div>
+
+        <aside class="side-panel">
+          <section class="status-card">
+            <p id="message" class="message" aria-live="polite">Loading the board…</p>
+            <p class="clock-note">Turn-based play · no wall-clock in Cartridge API 1</p>
+          </section>
+
+          <section class="history-card" aria-label="Move history">
+            <div class="section-heading">
+              <h2>Moves</h2>
+              <span id="move-count">0</span>
+            </div>
+            <ol id="history" class="history"></ol>
+          </section>
+
+          <section class="actions" aria-label="Game actions">
+            <button id="offer-draw" class="action" type="button">Offer draw</button>
+            <button id="accept-draw" class="action primary" type="button" hidden>Accept draw</button>
+            <button id="decline-draw" class="action" type="button" hidden>Decline</button>
+            <button id="resign" class="action danger" type="button">Resign</button>
+            <button id="rematch" class="action primary wide" type="button" hidden>Request rematch</button>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <div id="promotion" class="modal" role="dialog" aria-modal="true" aria-labelledby="promotion-title" hidden>
+      <section class="promotion-card">
+        <p class="eyebrow">Final rank</p>
+        <h2 id="promotion-title">Choose a promotion</h2>
+        <div id="promotion-choices" class="promotion-choices"></div>
+        <button id="cancel-promotion" class="action" type="button">Cancel</button>
+      </section>
+    </div>
+
+    <script type="module" src="game.mjs"></script>
+  </body>
+</html>

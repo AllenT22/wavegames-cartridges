@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Chess knight</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#2e5949"/>
+      <stop offset="1" stop-color="#101713"/>
+    </linearGradient>
+    <linearGradient id="piece" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#fff5d7"/>
+      <stop offset="1" stop-color="#d7b96f"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M154 409h218l-14-53c-9-34-32-59-65-75 42-17 67-52 67-98 0-63-46-109-110-109-11 0-22 2-33 5l33 55-65 25-52 95 58 19c25 8 40 25 44 49H177l-23 87Z" fill="url(#piece)" stroke="#f7df9d" stroke-width="12" stroke-linejoin="round"/>
+  <circle cx="263" cy="140" r="11" fill="#173529"/>
+  <path d="M167 409h194" stroke="#f7df9d" stroke-width="18" stroke-linecap="round"/>
+</svg>

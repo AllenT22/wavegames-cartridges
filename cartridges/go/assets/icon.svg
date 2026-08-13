@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="wood" x2="1" y2="1">
+      <stop stop-color="#f3cf82"/>
+      <stop offset="1" stop-color="#c98b3d"/>
+    </linearGradient>
+    <radialGradient id="black" cx="32%" cy="25%">
+      <stop stop-color="#62676d"/>
+      <stop offset=".55" stop-color="#202327"/>
+      <stop offset="1" stop-color="#050607"/>
+    </radialGradient>
+    <radialGradient id="white" cx="32%" cy="25%">
+      <stop stop-color="#fff"/>
+      <stop offset=".6" stop-color="#eeeae3"/>
+      <stop offset="1" stop-color="#bbb5ab"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#172019"/>
+  <rect x="15" y="15" width="98" height="98" rx="14" fill="url(#wood)"/>
+  <g stroke="#6f4522" stroke-width="2" opacity=".9">
+    <path d="M30 20v88M49 20v88M69 20v88M88 20v88M108 20v88"/>
+    <path d="M20 30h88M20 49h88M20 69h88M20 88h88M20 108h88"/>
+  </g>
+  <circle cx="49" cy="49" r="14" fill="url(#black)" stroke="#000" stroke-width="1.5"/>
+  <circle cx="88" cy="69" r="14" fill="url(#white)" stroke="#8f887e" stroke-width="1.5"/>
+  <circle cx="69" cy="108" r="3" fill="#59351b"/>
+</svg>

@@ -1,0 +1,46 @@
+group = "com.wavegames.wavegame_runtime"
+version = "1.0-SNAPSHOT"
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:9.0.1"
+    }
+}
+
+apply plugin: "com.android.library"
+
+android {
+    namespace = "com.wavegames.wavegame_runtime"
+    compileSdk = 36
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        minSdk = 26
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
+        test.java.srcDirs += "src/test/kotlin"
+    }
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+        }
+    }
+}
+
+dependencies {
+    testImplementation "org.jetbrains.kotlin:kotlin-test:2.3.20"
+    // android.jar exposes org.json as non-functional JVM stubs. Use the same
+    // API's real implementation for local bridge parser tests.
+    testImplementation "org.json:json:20180813"
+}

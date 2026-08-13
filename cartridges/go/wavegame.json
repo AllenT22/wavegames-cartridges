@@ -1,0 +1,32 @@
+{
+  "formatVersion": 1,
+  "id": "games.wavegames.go",
+  "version": "1.0.0",
+  "title": {
+    "en": "Go",
+    "ja": "囲碁"
+  },
+  "description": {
+    "en": "Full-size 19 by 19 Go with captures, suicide prevention, simple ko, Chinese-area scoring, 6.5 komi, and rematches.",
+    "ja": "石取り、自殺手の禁止、シンプルコウ、中国式面積計算、コミ6目半、再戦に対応した19路盤の囲碁です。"
+  },
+  "icon": "assets/icon.svg",
+  "engineApi": 1,
+  "entrypoints": {
+    "rules": "rules/index.mjs",
+    "ui": "ui/index.html"
+  },
+  "orientation": "any",
+  "capabilities": [],
+  "modes": {
+    "local": {
+      "minPlayers": 2,
+      "maxPlayers": 2
+    },
+    "wave": {
+      "minPlayers": 2,
+      "maxPlayers": 2,
+      "pace": "turn-based"
+    }
+  }
+}

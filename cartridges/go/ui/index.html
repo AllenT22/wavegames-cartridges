@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <title>Go</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="topbar">
+        <div>
+          <p id="seat" class="eyebrow">Connecting…</p>
+          <h1>Go <span>19 × 19</span></h1>
+        </div>
+        <div id="turn" class="turn-pill">Waiting for host</div>
+      </header>
+
+      <section class="players" aria-label="Players">
+        <article id="black-player" class="player-card">
+          <i class="stone black" aria-hidden="true"></i>
+          <div><span>Black</span><strong id="black-name">Player 1</strong></div>
+          <output id="black-score">0 captures</output>
+        </article>
+        <article id="white-player" class="player-card">
+          <i class="stone white" aria-hidden="true"></i>
+          <div><span>White · 6.5 komi</span><strong id="white-name">Player 2</strong></div>
+          <output id="white-score">0 captures</output>
+        </article>
+      </section>
+
+      <p id="message" class="message" aria-live="polite">Connecting to Wave Games…</p>
+
+      <section class="board-frame">
+        <div id="board" class="board" role="grid" aria-label="19 by 19 Go board">
+          <canvas id="board-canvas" aria-hidden="true"></canvas>
+          <div id="intersections" class="intersections"></div>
+        </div>
+      </section>
+
+      <section class="actions" aria-label="Game actions">
+        <button id="pass" class="action primary" type="button" disabled>Pass</button>
+        <button id="resign" class="action danger" type="button" disabled>Resign</button>
+        <button id="rematch" class="action primary wide" type="button" hidden>Request rematch</button>
+      </section>
+
+      <details class="rules">
+        <summary>Rules used by this cartridge</summary>
+        <p>Black plays first. Captures, suicide prevention, and simple ko are enforced by the authoritative rules module. Two consecutive passes end the game using Chinese-area scoring; White receives 6.5 komi.</p>
+      </details>
+    </main>
+    <script type="module" src="game.mjs"></script>
+  </body>
+</html>

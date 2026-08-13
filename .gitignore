@@ -1,0 +1,14 @@
+.DS_Store
+node_modules/
+artifacts/
+*.tmp
+
+# Dart and Flutter generated output
+.dart_tool/
+build/
+coverage/
+.flutter-plugins*
+
+# Android generated output
+.gradle/
+local.properties

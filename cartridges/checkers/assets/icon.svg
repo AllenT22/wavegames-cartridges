@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="wood" x2="1" y2="1"><stop stop-color="#d7b27a"/><stop offset="1" stop-color="#8b5733"/></linearGradient>
+    <radialGradient id="red"><stop offset="0" stop-color="#ff8878"/><stop offset=".48" stop-color="#d5453b"/><stop offset="1" stop-color="#78201f"/></radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#171c25"/>
+  <rect x="18" y="18" width="92" height="92" rx="13" fill="url(#wood)"/>
+  <path fill="#43322a" d="M29 18h12v92H29zm23 0h12v92H52zm23 0h12v92H75zm23 0h12v92H98zM18 29h92v12H18zm0 23h92v12H18zm0 23h92v12H18zm0 23h92v12H18z" opacity=".86"/>
+  <circle cx="47" cy="81" r="18" fill="url(#red)" stroke="#ffb1a5" stroke-width="3"/>
+  <circle cx="82" cy="47" r="18" fill="#202735" stroke="#8e9aad" stroke-width="3"/>
+  <path d="m34 79 6-8 7 7 7-7 7 8-3 9H37z" fill="#ffd879"/>
+</svg>

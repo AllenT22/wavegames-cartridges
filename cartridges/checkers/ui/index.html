@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>Checkers</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p id="seat" class="eyebrow">Connecting…</p>
+          <h1>Checkers</h1>
+        </div>
+        <div id="turn" class="turn">Waiting for host</div>
+      </header>
+      <p id="message" class="message" aria-live="polite"></p>
+      <section class="board-frame">
+        <div id="board" class="board" role="grid" aria-label="Checkers board"></div>
+      </section>
+      <div class="legend" aria-hidden="true">
+        <span><i class="mini red"></i> Player 1</span>
+        <span><i class="mini black"></i> Player 2</span>
+      </div>
+      <section class="actions">
+        <button id="surrender" class="action" type="button">Surrender</button>
+        <button id="rematch" class="action primary" type="button" hidden>Request rematch</button>
+      </section>
+    </main>
+    <script type="module" src="game.mjs"></script>
+  </body>
+</html>

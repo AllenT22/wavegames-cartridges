@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Wave Games Simulator</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">Wave Games developer simulator</p>
+        <h1 id="title">Loading cartridge…</h1>
+        <p id="package"></p>
+      </div>
+      <form id="controls">
+        <label>Seats <select id="players"></select></label>
+        <label>Seed <input id="seed" type="number" value="1463899973" step="1"></label>
+        <button type="submit">Restart</button>
+        <button id="copy-replay" type="button" class="secondary">Copy replay</button>
+        <label>Delay (ms) <input id="delay" type="number" value="0" min="0" max="5000" step="10"></label>
+        <button id="drop-next" type="button" class="secondary">Drop next</button>
+        <button id="duplicate-next" type="button" class="secondary">Duplicate next</button>
+        <button id="reorder-next" type="button" class="secondary">Reorder next pair</button>
+      </form>
+    </header>
+    <p id="error" role="alert" hidden></p>
+    <main id="seats" aria-live="polite"></main>
+    <script type="module" src="/app.mjs"></script>
+  </body>
+</html>

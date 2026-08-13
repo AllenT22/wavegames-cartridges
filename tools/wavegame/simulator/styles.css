@@ -1,0 +1,22 @@
+:root { color-scheme: dark; font: 15px/1.45 system-ui, sans-serif; background: #0b1412; color: #edf6f2; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; }
+header { position: sticky; z-index: 2; top: 0; display: flex; gap: 2rem; justify-content: space-between; align-items: end; padding: 1.1rem 1.35rem; border-bottom: 1px solid #ffffff1f; background: #0b1412ee; backdrop-filter: blur(16px); }
+h1, p { margin: 0; }
+h1 { font-size: clamp(1.4rem, 3vw, 2.25rem); }
+.eyebrow { color: #75d9b3; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+#package { color: #a6bbb3; font-family: ui-monospace, monospace; }
+form { display: flex; flex-wrap: wrap; gap: .65rem; align-items: end; }
+label { display: grid; gap: .25rem; color: #b9cbc4; font-size: .75rem; font-weight: 700; }
+input, select, button { min-height: 2.35rem; border: 1px solid #ffffff24; border-radius: .55rem; padding: .45rem .7rem; background: #17231f; color: inherit; font: inherit; }
+button { border-color: #74d3ae66; background: #74d3ae; color: #08231a; font-weight: 800; cursor: pointer; }
+button.secondary { border-color: #ffffff24; background: #22332d; color: #d9ebe4; }
+button[data-active="true"] { border-color: #ffd56a; background: #594719; color: #fff1bd; }
+#error { margin: 1rem 1.35rem 0; padding: .8rem 1rem; border: 1px solid #ff8d8d70; border-radius: .7rem; background: #4b1717; color: #ffd7d7; }
+#seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 23rem), 1fr)); gap: 1rem; padding: 1rem 1.35rem 1.35rem; }
+.seat { min-height: 31rem; overflow: hidden; border: 1px solid #ffffff24; border-radius: 1rem; background: #121d19; box-shadow: 0 .8rem 2rem #0005; }
+.seat-heading { height: 2.8rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .35rem .45rem .35rem .8rem; background: #192722; }
+.seat h2 { margin: 0; color: #bfe6d7; font-size: .82rem; letter-spacing: .05em; text-transform: uppercase; }
+.seat-heading button { min-height: 2rem; padding: .25rem .55rem; font-size: .72rem; }
+.seat iframe { display: block; width: 100%; height: calc(100% - 2.8rem); min-height: 28.2rem; border: 0; background: white; }
+@media (max-width: 760px) { header { position: static; align-items: stretch; flex-direction: column; gap: .8rem; } }

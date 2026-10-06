@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+<title id="title">Color Match geometric cards</title>
+<rect width="128" height="128" rx="8" fill="#14252e"/>
+<g stroke="#c9c2b3" stroke-width="2">
+<rect x="13" y="25" width="40" height="77" rx="2" fill="#f3eee1"/>
+<rect x="44" y="17" width="40" height="85" rx="2" fill="#f3eee1"/>
+<rect x="75" y="25" width="40" height="77" rx="2" fill="#f3eee1"/>
+</g>
+<path d="M16 28h5v71h-5z" fill="#ce634f"/><path d="m34 40 10 10-10 10-10-10z" fill="#ce634f"/>
+<path d="M47 20h5v79h-5z" fill="#258775"/><path d="m65 35 11 20H54z" fill="#258775"/>
+<path d="M78 28h5v71h-5z" fill="#6268b8"/><path d="M92 40h8v7h7v8h-7v7h-8v-7h-7v-8h7z" fill="#6268b8"/>
+<g stroke="#172630" stroke-width="4" fill="none" stroke-linecap="square"><path d="M29 73h12l-9 17"/><path d="M60 71h10v18H60zM60 80h10"/><path d="M92 74h12v7H92v9h12"/></g>
+</svg>

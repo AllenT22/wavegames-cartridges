@@ -19,6 +19,7 @@ const games = Object.freeze([
   Object.freeze({ slug: 'checkers', label: 'Checkers', players: '2' }),
   Object.freeze({ slug: 'chess', label: 'Chess', players: '2' }),
   Object.freeze({ slug: 'go', label: 'Go', players: '2' }),
+  Object.freeze({ slug: 'color-match', label: 'Color Match', players: '2-8' }),
 ]);
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));

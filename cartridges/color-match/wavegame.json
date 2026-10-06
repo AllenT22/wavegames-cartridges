@@ -1,0 +1,32 @@
+{
+  "formatVersion": 1,
+  "id": "games.wavegames.color-match",
+  "version": "1.0.0",
+  "title": {
+    "en": "Color Match",
+    "ja": "カラーマッチ"
+  },
+  "description": {
+    "en": "Match a color or number, use action cards, and declare your last card. Play scored rounds with two to eight players.",
+    "ja": "色か数字を合わせ、アクションカードを使い、残り1枚を宣言します。2〜8人でラウンドごとの得点を競います。"
+  },
+  "icon": "assets/icon.svg",
+  "engineApi": 1,
+  "entrypoints": {
+    "rules": "rules/index.mjs",
+    "ui": "ui/index.html"
+  },
+  "orientation": "any",
+  "capabilities": [],
+  "modes": {
+    "local": {
+      "minPlayers": 2,
+      "maxPlayers": 8
+    },
+    "wave": {
+      "minPlayers": 2,
+      "maxPlayers": 8,
+      "pace": "turn-based"
+    }
+  }
+}

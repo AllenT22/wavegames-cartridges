@@ -47,6 +47,17 @@
       "sha256": "d713373a4ab88c884f80ca35364d43872bd24304bfd3b1fec0103a06825792ea",
       "bytes": 49729,
       "checks": 11
+    },
+    {
+      "id": "games.wavegames.color-match",
+      "title": "Color Match",
+      "version": "1.0.0",
+      "players": "2-8",
+      "file": "WaveGames-Color-Match-1.0.0.wavegame",
+      "packageDigest": "1aca480304432c80f1675c0a40c098b30a403186683d7af290fae49d503107b9",
+      "sha256": "f44b29d57699e6b0818032c67441d2cc2b71648ca1bd5cf54eda4d6ed1eb5eb6",
+      "bytes": 77753,
+      "checks": 23
     }
   ]
 }

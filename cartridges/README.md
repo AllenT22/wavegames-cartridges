@@ -8,12 +8,11 @@
 - a responsive playable interface; and
 - a scenario that proves turn enforcement and a complete horizontal win.
 
-`checkers/`, `chess/`, `go/`, and `uno/` are parity migrations of the
+`checkers/`, `chess/`, and `go/` are parity migrations of the
 first-party games. Checkers proves forced multi-action turns and promotion.
 Chess proves a larger deterministic rules surface. Go proves that a full
 19-by-19 public board, captures, ko, and deterministic area scoring fit the
-API 1 state/view limits. UNO proves hidden per-seat information and the full
-eight-seat limit.
+API 1 state/view limits.
 
 Validate and play it with:
 
@@ -27,7 +26,7 @@ to create the `.wavegame` file that can be selected from Downloads or Files.
 The reproducible public packages and checksums are checked into
 `releases/1.0.0/` for direct download.
 
-Build the complete public-unverified release—with all five import files, checksums,
+Build the complete public-unverified release—with all four import files, checksums,
 testing instructions, source, and developer tools—with:
 
 ```text

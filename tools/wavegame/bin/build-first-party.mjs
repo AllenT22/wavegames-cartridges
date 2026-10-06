@@ -19,7 +19,6 @@ const games = Object.freeze([
   Object.freeze({ slug: 'checkers', label: 'Checkers', players: '2' }),
   Object.freeze({ slug: 'chess', label: 'Chess', players: '2' }),
   Object.freeze({ slug: 'go', label: 'Go', players: '2' }),
-  Object.freeze({ slug: 'uno', label: 'UNO', players: '2-8' }),
 ]);
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -176,7 +175,7 @@ to be exercised on the intended phones and boards before public release.
 }
 
 function sourceReadme() {
-  return `# WaveGames first-party cartridge source\n\nThis archive contains the five API 1 example games and the exact dependency-free developer toolkit needed to test, simulate, validate, and pack them. Run the commands documented in \`tools/wavegame/README.md\` with Node.js 24 or newer.\n`;
+  return `# WaveGames first-party cartridge source\n\nThis archive contains the ${games.length} API 1 example games and the exact dependency-free developer toolkit needed to test, simulate, validate, and pack them. Run the commands documented in \`tools/wavegame/README.md\` with Node.js 24 or newer.\n`;
 }
 
 function checksumText(records) {

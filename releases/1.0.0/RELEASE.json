@@ -47,17 +47,6 @@
       "sha256": "d713373a4ab88c884f80ca35364d43872bd24304bfd3b1fec0103a06825792ea",
       "bytes": 49729,
       "checks": 11
-    },
-    {
-      "id": "games.wavegames.uno",
-      "title": "UNO",
-      "version": "1.0.0",
-      "players": "2-8",
-      "file": "WaveGames-UNO-1.0.0.wavegame",
-      "packageDigest": "407e422ac031141d3b0f6ab5d3bf1ca4b73974b8c27a6df9dc3f62346f445ae8",
-      "sha256": "a7350af99b44dbdbe6d50fad7126c06765147952fb43b743dbe0f65424e85237",
-      "bytes": 78659,
-      "checks": 23
     }
   ]
 }

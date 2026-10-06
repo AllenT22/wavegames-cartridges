@@ -206,7 +206,7 @@ The following are release invariants:
 - firmware forwarding of wire game ID 0 is covered by host tests;
 - native, sanitizer, mobile, bench, endpoint, and relay builds remain green;
 - malformed-package and sandbox escape tests pass on both Android and iOS;
-- Connect Four freezes API 1, UNO proves hidden information and 8 seats,
+- Connect Four freezes API 1,
   Checkers and Chess prove complex-turn and full-rules parity, and Go proves a
   full 19-by-19 public board with deterministic area scoring;
 - compiled provisional versions of converted games are removed only after

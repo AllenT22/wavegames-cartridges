@@ -12,8 +12,6 @@ feature lines:
 - Connect Four: deterministic two-player column-drop rules.
 - Go: 19x19 captures, suicide prevention, simple ko, two-pass ending,
   Chinese-area scoring, and 6.5 komi.
-- UNO: 2-8 players, the standard 108-card deck, action cards, Wild Draw Four
-  challenges, UNO call/catch, scored rounds, and rematches.
 
 Cartridge API 1 uses wire game ID `0`; it therefore avoids provisional compiled
 game-ID collisions. The cartridges are phone-authoritative, and boards forward

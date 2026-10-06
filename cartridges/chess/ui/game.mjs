@@ -33,6 +33,8 @@ let selected = null;
 let pendingPromotion = null;
 let submitting = false;
 let notice = '';
+let unavailable = false;
+let promotionFocus = null;
 
 for (let index = 0; index < 64; index += 1) {
   const row = Math.floor(index / 8);
@@ -41,7 +43,6 @@ for (let index = 0; index < 64; index += 1) {
   button.type = 'button';
   button.className = `square ${(row + column) % 2 === 0 ? 'light' : 'dark'}`;
   button.dataset.square = String(index);
-  button.setAttribute('role', 'gridcell');
   const piece = document.createElement('span');
   piece.className = 'piece';
   button.append(piece);
@@ -58,20 +59,31 @@ for (const type of promotionNames) {
   promotionChoices.append(button);
 }
 
-game = await WaveGames.connect({ api: 1 });
-seat.textContent = `Seat ${game.context.seat} · ${game.context.mode === 'wave' ? 'Wave match' : 'Local game'}`;
-game.onView(render);
-game.onEvent?.((event) => {
-  if (event.type === 'check') notice = 'Check.';
-  if (event.type === 'drawOffered') notice = event.playerId === game.context.playerId ? 'Draw offered.' : 'Your opponent offered a draw.';
-  if (event.type === 'drawDeclined') notice = 'The draw offer was declined.';
-  if (event.type === 'rematchStarted') notice = 'New game. Colors swapped.';
-});
-if (game.view) render(game.view);
+for (const button of document.querySelectorAll('button')) button.disabled = true;
+try {
+  game = await WaveGames.connect({ api: 1 });
+  unavailable = ['disconnected', 'ended', 'closed'].includes(game.status);
+  if (unavailable) notice = 'Connection interrupted. Rejoin the match to continue.';
+  seat.textContent = `Seat ${game.context.seat} · ${game.context.mode === 'wave' ? 'Wave match' : 'Local game'}`;
+  game.onView(render);
+  game.onStatus?.((status) => {
+    unavailable = ['disconnected', 'ended', 'closed'].includes(status);
+    if (unavailable) {
+      notice = 'Connection interrupted. Rejoin the match to continue.';
+      hidePromotion();
+    } else if (status === 'connected') notice = '';
+    if (latestView) render(latestView);
+  });
+  if (game.view) render(game.view);
+} catch (error) {
+  seat.textContent = 'Connection unavailable';
+  turn.textContent = 'Unable to join';
+  message.textContent = error instanceof Error ? error.message : String(error);
+}
 
 board.addEventListener('click', (event) => {
   const target = event.target.closest('button[data-square]');
-  if (!target || !latestView || submitting || latestView.status !== 'playing') return;
+  if (!target || !latestView || submitting || unavailable || pendingPromotion !== null || latestView.status !== 'playing') return;
   const square = Number(target.dataset.square);
   const legalMoves = decodeLegalMoves(latestView.legalMoves);
   const movesFromSelected = selected === null ? [] : legalMoves.filter((move) => move.from === selected && move.to === square);
@@ -109,7 +121,7 @@ resign.addEventListener('click', () => submit({ type: 'resign' }));
 rematch.addEventListener('click', () => submit({ type: 'rematch' }));
 
 async function submit(action) {
-  if (submitting) return;
+  if (submitting || unavailable || !game || !latestView) return;
   submitting = true;
   notice = '';
   render(latestView);
@@ -125,8 +137,12 @@ async function submit(action) {
 }
 
 function render(view) {
+  if (latestView && latestView.revision !== view.revision && !unavailable) notice = '';
   latestView = view;
   const legalMoves = decodeLegalMoves(view.legalMoves);
+  if (pendingPromotion !== null && !legalMoves.some((move) => move.from === pendingPromotion.from && move.to === pendingPromotion.to && move.promotion !== null)) {
+    hidePromotion();
+  }
   const legalFrom = new Set(legalMoves.map((move) => move.from));
   if (selected !== null && !legalFrom.has(selected)) selected = null;
   const destinations = new Map(
@@ -146,15 +162,16 @@ function render(view) {
     button.classList.toggle('destination', destinations.has(index));
     button.classList.toggle('capture', isCapture || destinations.get(index)?.isEnPassant === true);
     button.classList.toggle('last', lastSquares.has(index));
-    button.disabled = submitting || (!legalFrom.has(index) && !destinations.has(index));
+    button.disabled = submitting || unavailable || (!legalFrom.has(index) && !destinations.has(index));
+    button.setAttribute('aria-pressed', String(selected === index));
     const name = squareName(index);
     const occupant = entry === null ? 'empty' : `${entry.color} ${entry.type}`;
     const action = destinations.has(index) ? ', legal destination' : legalFrom.has(index) ? ', selectable' : '';
     button.setAttribute('aria-label', `${name}, ${occupant}${action}`);
   }
 
-  whiteName.textContent = `${view.players[0].name}${view.myColor === 'white' ? ' · You' : ''}`;
-  blackName.textContent = `${view.players[1].name}${view.myColor === 'black' ? ' · You' : ''}`;
+  whiteName.textContent = `White · ${view.players[0].name}${view.myColor === 'white' ? ' · You' : ''}`;
+  blackName.textContent = `Black · ${view.players[1].name}${view.myColor === 'black' ? ' · You' : ''}`;
   whitePlayer.classList.toggle('active', view.status === 'playing' && view.turnColor === 'white');
   blackPlayer.classList.toggle('active', view.status === 'playing' && view.turnColor === 'black');
   whitePlayer.classList.toggle('in-check', view.inCheck && view.turnColor === 'white');
@@ -167,15 +184,15 @@ function render(view) {
 
   const playing = view.status === 'playing';
   offerDraw.hidden = !playing || view.drawOfferBy !== null;
-  offerDraw.disabled = submitting || !view.canOfferDraw;
+  offerDraw.disabled = submitting || unavailable || !view.canOfferDraw;
   acceptDraw.hidden = !view.canAcceptDraw;
-  acceptDraw.disabled = submitting || !view.canAcceptDraw;
+  acceptDraw.disabled = submitting || unavailable || !view.canAcceptDraw;
   declineDraw.hidden = !view.canDeclineDraw;
-  declineDraw.disabled = submitting || !view.canDeclineDraw;
+  declineDraw.disabled = submitting || unavailable || !view.canDeclineDraw;
   resign.hidden = !playing;
-  resign.disabled = submitting || !view.canResign;
+  resign.disabled = submitting || unavailable || !view.canResign;
   rematch.hidden = playing;
-  rematch.disabled = submitting || !view.canRequestRematch;
+  rematch.disabled = submitting || unavailable || !view.canRequestRematch;
   const voteIndex = view.myColor === 'white' ? 0 : 1;
   rematch.textContent = view.rematchVotes[voteIndex] ? 'Waiting for opponent…' : 'Request rematch';
 }
@@ -247,10 +264,21 @@ function resultMessage(view) {
 }
 
 function showPromotion() {
+  promotionFocus = document.activeElement;
   const color = latestView.myColor;
   for (const button of promotionChoices.querySelectorAll('button[data-promotion]')) {
-    button.textContent = glyphs[color][button.dataset.promotion];
+    button.disabled = false;
+    button.replaceChildren();
+    const glyph = document.createElement('span');
+    glyph.className = 'promotion-glyph';
+    glyph.textContent = glyphs[color][button.dataset.promotion];
+    glyph.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    label.textContent = button.dataset.promotion;
+    button.append(glyph, label);
   }
+  cancelPromotion.disabled = false;
+  document.querySelector('main').inert = true;
   promotion.hidden = false;
   promotionChoices.querySelector('button')?.focus();
 }
@@ -258,8 +286,23 @@ function showPromotion() {
 function hidePromotion() {
   pendingPromotion = null;
   promotion.hidden = true;
-  board.focus?.();
+  document.querySelector('main').inert = false;
+  promotionFocus?.focus();
+  promotionFocus = null;
 }
+
+promotion.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    hidePromotion();
+  } else if (event.key === 'Tab') {
+    const controls = [...promotion.querySelectorAll('button:not(:disabled)')];
+    const index = controls.indexOf(document.activeElement);
+    const next = event.shiftKey ? (index + controls.length - 1) % controls.length : (index + 1) % controls.length;
+    event.preventDefault();
+    controls[next]?.focus();
+  }
+});
 
 function squareName(square) {
   return `${String.fromCharCode(97 + square % 8)}${8 - Math.floor(square / 8)}`;

@@ -103,8 +103,8 @@ export function view({ state, viewer, players, revision }) {
     legalMoves: myTurn ? allLegalMoves(state).map(encodeMove).join('') : '',
     canResign: active && myColor !== null,
     canOfferDraw: active && myColor !== null && state.drawOfferBy === null,
-    canAcceptDraw: active && state.drawOfferBy !== null && state.drawOfferBy !== viewer,
-    canDeclineDraw: active && state.drawOfferBy !== null && state.drawOfferBy !== viewer,
+    canAcceptDraw: active && myColor !== null && state.drawOfferBy !== null && state.drawOfferBy !== viewer,
+    canDeclineDraw: active && myColor !== null && state.drawOfferBy !== null && state.drawOfferBy !== viewer,
     canRequestRematch: !active && myColor !== null && !state.rematchVotes[myColor === 'white' ? 0 : 1],
     revision,
   };
@@ -253,7 +253,8 @@ function applyLegalMove(state, move) {
     enPassantTarget,
     halfmoveClock: pawnMove || captured !== null ? 0 : state.halfmoveClock + 1,
     fullmoveNumber: state.fullmoveNumber + (moved.color === 'black' ? 1 : 0),
-    drawOfferBy: null,
+    // An offer survives the offerer's move; the recipient's reply declines it.
+    drawOfferBy: state.drawOfferBy === state.turn ? state.drawOfferBy : null,
     lastMove: null,
   };
 
@@ -284,6 +285,7 @@ function applyLegalMove(state, move) {
     next.status = 'playing';
     next.winner = null;
   }
+  if (isFinished(next)) next.drawOfferBy = null;
 
   const record = {
     from: move.from,

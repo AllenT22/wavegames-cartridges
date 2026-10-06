@@ -1,4 +1,4 @@
-import { __testing } from '../rules/index.mjs';
+import { __testing, create, reduce, view } from '../rules/index.mjs';
 import { decodeHistory, decodeLegalMoves } from '../ui/view-codec.mjs';
 
 const white = (type) => ({ color: 'white', type });
@@ -6,6 +6,94 @@ const black = (type) => ({ color: 'black', type });
 const at = __testing.squareIndex;
 
 export const scenarios = [
+  {
+    name: 'draw offers survive the offerers move and expire on the recipients move',
+    players: 2,
+    async run({ host, assert }) {
+      await host.dispatchAction(1, { type: 'offerDraw' });
+      await play(host, [[1, 'e2', 'e4']], assert);
+      const offered = await host.viewForSeat(2);
+      assert.equal(offered.drawOfferBy, 'player-1');
+      assert.equal(offered.canAcceptDraw, true);
+      await play(host, [[2, 'e7', 'e5']], assert);
+      assert.equal((await host.viewForSeat(1)).drawOfferBy, null);
+      await host.dispatchAction(1, { type: 'offerDraw' });
+      await play(host, [[1, 'g1', 'f3']], assert);
+      assert.equal((await host.dispatchAction(2, { type: 'acceptDraw' })).accepted, true);
+      assert.equal((await host.viewForSeat(1)).status, 'drawAgreement');
+    },
+  },
+  {
+    name: 'spectators cannot answer draw offers and detached views cannot mutate authority',
+    players: 2,
+    async run({ assert }) {
+      const players = [{ id: 'player-1' }, { id: 'player-2' }];
+      const state = reduce({ state: create({ players }), playerId: 'player-1', action: { type: 'offerDraw' } }).state;
+      const before = JSON.stringify(state);
+      const spectator = view({ state, viewer: 'observer', players, revision: 1 });
+      assert.equal(spectator.myColor, null);
+      for (const permission of ['canAcceptDraw', 'canDeclineDraw', 'canResign', 'canOfferDraw', 'canRequestRematch']) assert.equal(spectator[permission], false);
+      assert.equal(spectator.legalMoves, '');
+      assert.equal(reduce({ state, playerId: 'observer', action: { type: 'acceptDraw' } }).accepted, false);
+      spectator.players[0].id = 'observer';
+      spectator.rematchVotes[0] = true;
+      assert.equal(JSON.stringify(state), before);
+    },
+  },
+  {
+    name: 'malformed and invalid actions leave the authority untouched',
+    players: 2,
+    async run({ assert }) {
+      const state = create({ players: [{ id: 'player-1' }, { id: 'player-2' }] });
+      const before = JSON.stringify(state);
+      for (const action of [null, [], 'move', {}, { type: 'move', from: '52', to: 36 }, { type: 'move', from: -1, to: 36 }, { type: 'move', from: 52, to: 64 }, { type: 'move', from: 52, to: 36, promotion: 'king' }, { type: 'move', from: 52, to: 36, promotion: 'queen' }]) {
+        assert.equal(reduce({ state, playerId: 'player-1', action }).accepted, false);
+        assert.equal(JSON.stringify(state), before);
+      }
+      const accepted = reduce({ state, playerId: 'player-1', action: { type: 'move', from: at('e2'), to: at('e4') } });
+      assert.equal(accepted.accepted, true);
+      assert.equal(JSON.stringify(state), before);
+    },
+  },
+  {
+    name: 'castling rights cannot return after a rook moves or is captured',
+    players: 2,
+    async run({ assert }) {
+      let state = __testing.createPosition({ pieces: { e1: white('king'), h1: white('rook'), e8: black('king'), a8: black('rook') } });
+      state = __testing.applyMove(state, 'h1', 'h2');
+      state = __testing.applyMove(state, 'a8', 'a7');
+      state = __testing.applyMove(state, 'h2', 'h1');
+      state = __testing.applyMove(state, 'a7', 'a8');
+      assert.equal(__testing.legalMovesFrom(state, at('e1')).some((move) => move.isCastle), false);
+      const capture = __testing.createPosition({ turnColor: 'black', pieces: { e1: white('king'), h1: white('rook'), e8: black('king'), h8: black('rook') } });
+      assert.equal(__testing.applyMove(capture, 'h8', 'h1').whiteCanCastleKingSide, false);
+    },
+  },
+  {
+    name: 'en passant expires after one reply and cannot expose a horizontal check',
+    players: 2,
+    async run({ host, assert }) {
+      await play(host, [[1, 'e2', 'e4'], [2, 'a7', 'a6'], [1, 'e4', 'e5'], [2, 'd7', 'd5'], [1, 'g1', 'f3'], [2, 'a6', 'a5']], assert);
+      assert.equal(decodeLegalMoves((await host.viewForSeat(1)).legalMoves).some((move) => move.isEnPassant), false);
+      const pinned = __testing.createPosition({ pieces: { h5: white('king'), g5: white('pawn'), a8: black('king'), a5: black('rook'), f5: black('pawn') }, enPassantTarget: 'f6' });
+      assert.equal(__testing.legalMovesFrom(pinned, at('g5')).some((move) => move.to === at('f6')), false);
+    },
+  },
+  {
+    name: 'promotion requires a choice and a finished board rejects further moves',
+    players: 2,
+    async run({ assert }) {
+      const state = __testing.createPosition({ pieces: { e1: white('king'), e8: black('king'), a7: white('pawn') } });
+      const action = { type: 'move', from: at('a7'), to: at('a8') };
+      const before = JSON.stringify(state);
+      assert.equal(reduce({ state, playerId: 'player-1', action }).accepted, false);
+      assert.equal(JSON.stringify(state), before);
+      const promoted = reduce({ state, playerId: 'player-1', action: { ...action, promotion: 'knight' } });
+      assert.equal(promoted.accepted, true);
+      assert.equal(promoted.state.status, 'drawInsufficientMaterial');
+      assert.equal(reduce({ state: promoted.state, playerId: 'player-2', action: { type: 'move', from: at('e8'), to: at('e7') } }).accepted, false);
+    },
+  },
   {
     name: 'initial position has twenty legal moves',
     players: 2,

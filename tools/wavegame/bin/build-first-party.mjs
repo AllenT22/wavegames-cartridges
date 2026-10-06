@@ -13,7 +13,7 @@ import {
   validateWavegame,
 } from '../src/index.mjs';
 
-const bundleVersion = '1.0.0';
+const bundleVersion = '1.1.0';
 const games = Object.freeze([
   Object.freeze({ slug: 'connect-four', label: 'Connect Four', players: '2' }),
   Object.freeze({ slug: 'checkers', label: 'Checkers', players: '2' }),
@@ -143,18 +143,18 @@ function testingInstructions(releases, sourceFilename) {
     .join('\n');
   return `# WaveGames Cartridge API 1 test bundle
 
-These public packages are ready for testing with the WaveGames 0.3 cartridge
-engine. The **Unverified** label in the app is expected: API 1 validates
+These public packages use Cartridge API 1 and are ready for testing with a
+cartridge-capable WaveGames build. The **Unverified** label in the app is expected: API 1 validates
 package contents and exact digests but does not claim publisher signatures.
 
 ## Import and play
 
-1. Copy one or more \`.wavegame\` files to Android Downloads or iOS Files.
+1. Save one or more \`.wavegame\` files to Downloads or Files on your device.
 2. In WaveGames, open **Library**, choose **Import cartridge**, and select a file.
-3. Use **Play here** for a local two-seat test, or connect a board and choose
-   **Nearby** for a multi-phone match.
-4. For Nearby play, import the exact same file on every phone. The host approves
-   the fixed roster and starts the match; packages are not sent through the mesh.
+   Some builds label this **Game Library / Import game**.
+3. Return to **Game Lobby**. The host selects the game and approves the players.
+   Join with the exact same package installed; packages are not sent through the mesh.
+4. For radio play, connect each phone to its own compatible radio first.
 5. Compare the package digest shown by the app with the digest below if a phone
    reports a mismatch.
 

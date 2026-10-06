@@ -104,6 +104,7 @@ export const scenarios = [
       assert.equal(view.winner, 'player-1');
       assert.equal(view.draw, false);
       assert.equal(view.turn, null);
+      assert.equal(view.finishReason, 'blocked');
     },
   },
   {
@@ -118,6 +119,7 @@ export const scenarios = [
       assert.equal(view.draw, true);
       assert.equal(view.winner, null);
       assert.equal(view.turn, null);
+      assert.equal(view.finishReason, 'noProgress');
     },
   },
   {
@@ -127,6 +129,7 @@ export const scenarios = [
       const surrender = await host.dispatchAction(1, { type: 'surrender' });
       assert.equal(surrender.accepted, true);
       assert.equal((await host.viewForSeat(2)).winner, 'player-2');
+      assert.equal((await host.viewForSeat(2)).finishReason, 'surrender');
       const firstVote = await host.dispatchAction(1, { type: 'rematch' });
       assert.equal(firstVote.accepted, true);
       assert.deepEqual((await host.viewForSeat(2)).rematchVotes, [true, false]);
@@ -138,10 +141,92 @@ export const scenarios = [
       assert.equal(reset.turn, 'player-1');
       assert.equal(reset.winner, null);
       assert.equal(reset.finished, false);
+      assert.equal(reset.finishReason, null);
       assert.equal(reset.noProgressMoves, 0);
       assert.equal(reset.cells.filter((piece) => piece === ONE_MAN).length, 12);
       assert.equal(reset.cells.filter((piece) => piece === TWO_MAN).length, 12);
       assert.deepEqual(reset.rematchVotes, [false, false]);
+    },
+  },
+  {
+    name: 'advancing an uncrowned man resets the draw clock before the threshold',
+    players: 2,
+    async run({ host, assert }) {
+      setPosition(host, [[42, ONE_MAN], [21, TWO_KING]], { noProgressMoves: 79 });
+      assert.equal((await host.dispatchAction(1, { type: 'move', from: 42, to: 33 })).accepted, true);
+      const view = await host.viewForSeat(2);
+      assert.equal(view.noProgressMoves, 0);
+      assert.equal(view.finished, false);
+      assert.equal(view.turn, 'player-2');
+    },
+  },
+  {
+    name: 'capturing the final opponent wins and finished moves cannot change the result',
+    players: 2,
+    async run({ host, assert }) {
+      setPosition(host, [[42, ONE_MAN], [33, TWO_MAN]], { noProgressMoves: 79 });
+      assert.equal((await host.dispatchAction(1, { type: 'move', from: 42, to: 24 })).accepted, true);
+      const before = host.stateSnapshot();
+      assert.equal(before.noProgressMoves, 0);
+      assert.equal(before.winner, 'player-1');
+      assert.equal(before.finished, true);
+      assert.equal(before.finishReason, 'blocked');
+      for (const seat of [1, 2]) {
+        assert.equal((await host.viewForSeat(seat)).legalMoves.length, 0);
+        assert.equal((await host.viewForSeat(seat)).canSurrender, false);
+        assert.equal((await host.dispatchAction(seat, { type: 'move', from: 24, to: 17 })).accepted, false);
+        assert.equal((await host.dispatchAction(seat, { type: 'surrender' })).accepted, false);
+      }
+      assert.equal(host.revision, 1);
+      assert.deepEqual(host.stateSnapshot(), before);
+    },
+  },
+  {
+    name: 'player two captures backward as a king and cannot jump its own piece',
+    players: 2,
+    async run({ host, assert }) {
+      setPosition(host, [[28, TWO_KING], [19, ONE_MAN], [55, ONE_MAN]], { turn: 'player-2' });
+      assert.deepEqual((await host.viewForSeat(2)).legalMoves, [{ from: 28, to: 10, capture: true, captured: 19 }]);
+      assert.equal((await host.dispatchAction(1, { type: 'move', from: 55, to: 46 })).accepted, false);
+      assert.equal((await host.dispatchAction(2, { type: 'move', from: 28, to: 10 })).accepted, true);
+      assert.equal((await host.viewForSeat(1)).cells[19], EMPTY);
+      setPosition(host, [[28, TWO_KING], [19, TWO_MAN], [55, ONE_MAN]], { turn: 'player-2' });
+      const before = host.stateSnapshot();
+      assert.equal((await host.dispatchAction(2, { type: 'move', from: 28, to: 10 })).accepted, false);
+      assert.deepEqual(host.stateSnapshot(), before);
+    },
+  },
+  {
+    name: 'foreign viewers and actors receive no player controls and cannot alter authority',
+    players: 2,
+    async run({ host, assert }) {
+      const state = host.stateSnapshot();
+      const spectator = host.rules.view({ state, viewer: 'spectator', revision: host.revision });
+      assert.equal(spectator.mySide, 0);
+      assert.deepEqual(spectator.legalMoves, []);
+      assert.equal(spectator.canSurrender, false);
+      assert.equal(spectator.canRequestRematch, false);
+      for (const action of [{ type: 'move', from: 40, to: 33 }, { type: 'surrender' }, { type: 'rematch' }]) {
+        const result = host.rules.reduce({ state, playerId: 'spectator', action });
+        assert.equal(result.accepted, false);
+        assert.match(result.reason, /unknown player/i);
+      }
+      assert.deepEqual(host.stateSnapshot(), state);
+    },
+  },
+  {
+    name: 'player two crowns on an ordinary move and can subsequently move backward',
+    players: 2,
+    async run({ host, assert }) {
+      setPosition(host, [[55, TWO_MAN], [24, ONE_KING]], { turn: 'player-2', noProgressMoves: 79 });
+      assert.equal((await host.dispatchAction(2, { type: 'move', from: 55, to: 62 })).accepted, true);
+      const crowned = await host.viewForSeat(1);
+      assert.equal(crowned.cells[62], TWO_KING);
+      assert.equal(crowned.noProgressMoves, 0);
+      assert.equal(crowned.finished, false);
+      assert.equal(crowned.turn, 'player-1');
+      assert.equal((await host.dispatchAction(1, { type: 'move', from: 24, to: 17 })).accepted, true);
+      assert.equal((await host.dispatchAction(2, { type: 'move', from: 62, to: 53 })).accepted, true);
     },
   },
   {
@@ -150,6 +235,9 @@ export const scenarios = [
     async run({ host, assert }) {
       const before = host.stateSnapshot();
       const actions = [
+        [1, null],
+        [1, []],
+        [1, { type: 'rematch' }],
         [2, { type: 'move', from: 17, to: 24 }],
         [1, { type: 'move', from: 40, to: 49 }],
         [1, { type: 'move', from: 40, to: 40 }],
@@ -240,6 +328,7 @@ function setPosition(host, pieces, overrides = {}) {
     winner: null,
     draw: false,
     finished: false,
+    finishReason: null,
     forcedPiece: NO_FORCED_PIECE,
     noProgressMoves: 0,
     rematchVotes: [false, false],

@@ -1,0 +1,63 @@
+{
+  "formatVersion": 1,
+  "engineApi": 1,
+  "bundleVersion": "1.1.0",
+  "distribution": "public-unverified",
+  "games": [
+    {
+      "id": "games.wavegames.connect-four",
+      "title": "Connect Four",
+      "version": "1.1.0",
+      "players": "2",
+      "file": "WaveGames-Connect-Four-1.1.0.wavegame",
+      "packageDigest": "29faec83dcba89b7c1b76fc1fee9927f70e2866017e1bf8729c2fbd87a742f6d",
+      "sha256": "088fdd01af43a5a368d3007ed95d416df6c2f9ab187db44c168a19f044ad4e7f",
+      "bytes": 48689,
+      "checks": 12
+    },
+    {
+      "id": "games.wavegames.checkers",
+      "title": "Checkers",
+      "version": "1.1.0",
+      "players": "2",
+      "file": "WaveGames-Checkers-1.1.0.wavegame",
+      "packageDigest": "5127850fc567603193917997ff377d09cbb17b8e09b0efe944426f66bc55a29a",
+      "sha256": "bf03495eb36452ce5492f27260e59f80c1b437bb612323506268752173daa753",
+      "bytes": 56374,
+      "checks": 17
+    },
+    {
+      "id": "games.wavegames.chess",
+      "title": "Chess",
+      "version": "1.1.0",
+      "players": "2",
+      "file": "WaveGames-Chess-1.1.0.wavegame",
+      "packageDigest": "e9d7a1633985593b31b01160c652624de28b7644edf05e1f84fe0933fce13c0d",
+      "sha256": "46af2f505ecae90fd52bb8fd4940768b729d3d06c5cb492f587aaac3a37da888",
+      "bytes": 88842,
+      "checks": 22
+    },
+    {
+      "id": "games.wavegames.go",
+      "title": "Go",
+      "version": "1.1.0",
+      "players": "2",
+      "file": "WaveGames-Go-1.1.0.wavegame",
+      "packageDigest": "0a10d29e098fa4c2fe023d52384faa9a36d46e466359a158f09a2cf3c8cdaf72",
+      "sha256": "398b63454d9d65961d843d38872295f67d61a05f8cfe0408ed19f29e13909eec",
+      "bytes": 61468,
+      "checks": 16
+    },
+    {
+      "id": "games.wavegames.color-match",
+      "title": "Color Match",
+      "version": "1.1.0",
+      "players": "2-8",
+      "file": "WaveGames-Color-Match-1.1.0.wavegame",
+      "packageDigest": "3dde4d7c89d0eb5750e24e8e6117b2b77d9d6854f30985f616e62809c3ee95d3",
+      "sha256": "8cdaefe87af0d5cbd844c266752d555d02a9a0fdc12a6ec8760c56ea4079dcc3",
+      "bytes": 94150,
+      "checks": 29
+    }
+  ]
+}

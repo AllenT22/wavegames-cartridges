@@ -21,12 +21,25 @@ const whiteScore = document.querySelector('#white-score');
 const passButton = document.querySelector('#pass');
 const resignButton = document.querySelector('#resign');
 const rematchButton = document.querySelector('#rematch');
+const placeButton = document.querySelector('#place');
+const columnSelect = document.querySelector('#column');
+const rowSelect = document.querySelector('#row');
+const selection = document.querySelector('#selection');
+const COLUMNS = 'ABCDEFGHJKLMNOPQRST';
 const buttons = [];
 
 let game;
 let latestView;
 let submitting = false;
 let notice = '';
+let selectedCell = null;
+let roster = [];
+let connectionStatus = 'connecting';
+
+for (let index = 0; index < BOARD_SIZE; index += 1) {
+  columnSelect.add(new Option(COLUMNS[index], String(index), false, index === 9));
+  rowSelect.add(new Option(String(index + 1), String(index), false, index === 9));
+}
 
 for (let cell = 0; cell < CELL_COUNT; cell += 1) {
   const x = cell % BOARD_SIZE;
@@ -35,39 +48,80 @@ for (let cell = 0; cell < CELL_COUNT; cell += 1) {
   button.type = 'button';
   button.className = 'intersection';
   button.dataset.cell = String(cell);
-  button.setAttribute('role', 'gridcell');
+  button.tabIndex = -1;
+  button.disabled = true;
   button.style.left = `${5.6 + (x / (BOARD_SIZE - 1)) * 88.8}%`;
   button.style.top = `${5.6 + (y / (BOARD_SIZE - 1)) * 88.8}%`;
   intersections.append(button);
   buttons.push(button);
 }
 
-game = await WaveGames.connect({ api: 1 });
-const roster = game.context.roster ?? [];
-const mode = game.context.mode === 'wave' ? 'Wave match' : 'Local game';
-seat.textContent = `Seat ${game.context.seat} · ${mode}`;
-blackName.textContent = playerName(roster[0], 'Player 1');
-whiteName.textContent = playerName(roster[1], 'Player 2');
-game.onView(render);
-game.onEvent?.((event) => {
-  if (event.type === 'stonesCaptured') notice = `${event.count} ${event.count === 1 ? 'stone' : 'stones'} captured.`;
-  if (event.type === 'passed') notice = event.playerId === game.context.playerId ? 'You passed.' : 'Your opponent passed.';
-  if (event.type === 'rematchStarted') notice = 'A fresh board is ready. Black plays first.';
-});
-game.onStatus((status) => {
-  if (status === 'recovering') notice = 'Reconnecting to the match…';
-  if (status === 'ended') notice = 'The nearby match has ended.';
-  if (latestView) render(latestView);
-});
-if (game.view) render(game.view);
+try {
+  game = await WaveGames.connect({ api: 1 });
+  connectionStatus = 'ready';
+  roster = game.context.roster ?? [];
+  const mode = game.context.mode === 'wave' ? 'Wave match' : 'Local game';
+  seat.textContent = `Seat ${game.context.seat} · ${mode}`;
+  blackName.textContent = playerName(roster[0], 'Player 1');
+  whiteName.textContent = playerName(roster[1], 'Player 2');
+  game.onView(render);
+  game.onRoster((updated) => {
+    roster = updated;
+    if (latestView) render(latestView);
+  });
+  game.onStatus((status) => {
+    connectionStatus = status;
+    if (latestView) render(latestView);
+    else if (!connected()) {
+      turn.textContent = ['ended', 'closed'].includes(status) ? 'Match ended' : 'Reconnecting';
+      message.textContent = ['ended', 'closed'].includes(status) ? 'The match has ended. Reopen the game to continue.' : 'Reconnecting to the match…';
+    }
+  });
+  game.on?.('error', (error) => {
+    notice = typeof error === 'string' ? error : 'The host could not complete the request.';
+    if (latestView) render(latestView);
+  });
+  if (game.view) render(game.view);
+} catch (error) {
+  turn.textContent = 'Connection failed';
+  message.textContent = `${error instanceof Error ? error.message : String(error)}. Reopen the game to retry.`;
+}
 
 intersections.addEventListener('click', (event) => {
   const target = event.target.closest('button[data-cell]');
-  if (!target || !latestView || submitting || !latestView.canPlay) return;
+  if (!target || !canChoose()) return;
   const cell = Number(target.dataset.cell);
-  if (latestView.board[cell] !== EMPTY) return;
-  submit({ type: 'place', x: cell % BOARD_SIZE, y: Math.floor(cell / BOARD_SIZE) });
+  choose(cell);
 });
+
+board.addEventListener('focus', () => {
+  if (canChoose() && selectedCell === null) choose(9 * BOARD_SIZE + 9);
+});
+board.addEventListener('keydown', (event) => {
+  if (!canChoose()) return;
+  const cell = selectedCell ?? 9 * BOARD_SIZE + 9;
+  const x = cell % BOARD_SIZE;
+  const y = Math.floor(cell / BOARD_SIZE);
+  const moves = {
+    ArrowLeft: y * BOARD_SIZE + Math.max(0, x - 1),
+    ArrowRight: y * BOARD_SIZE + Math.min(18, x + 1),
+    ArrowUp: Math.max(0, y - 1) * BOARD_SIZE + x,
+    ArrowDown: Math.min(18, y + 1) * BOARD_SIZE + x,
+    Home: y * BOARD_SIZE,
+    End: y * BOARD_SIZE + 18,
+  };
+  if (event.key in moves) {
+    event.preventDefault();
+    choose(moves[event.key]);
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    placeSelected();
+  }
+});
+for (const control of [columnSelect, rowSelect]) {
+  control.addEventListener('change', () => choose(Number(rowSelect.value) * BOARD_SIZE + Number(columnSelect.value)));
+}
+placeButton.addEventListener('click', placeSelected);
 
 passButton.addEventListener('click', () => submit({ type: 'pass' }));
 resignButton.addEventListener('click', () => submit({ type: 'resign' }));
@@ -76,7 +130,7 @@ rematchButton.addEventListener('click', () => submit({ type: 'rematch' }));
 new ResizeObserver(() => drawBoard()).observe(board);
 
 async function submit(action) {
-  if (submitting) return;
+  if (!game || !latestView || submitting || !connected()) return;
   submitting = true;
   notice = '';
   render(latestView);
@@ -92,10 +146,17 @@ async function submit(action) {
 }
 
 function render(view) {
-  if (typeof view.board !== 'string' || view.board.length !== CELL_COUNT) {
+  if (!view || typeof view.board !== 'string' || !/^[.bw]{361}$/.test(view.board)) {
     notice = 'The host returned an invalid Go board.';
     message.textContent = notice;
+    turn.textContent = 'Board unavailable';
+    latestView = undefined;
+    for (const button of [...buttons, placeButton, passButton, resignButton, rematchButton, columnSelect, rowSelect]) button.disabled = true;
     return;
+  }
+  if (latestView && view.revision !== latestView.revision) {
+    selectedCell = null;
+    notice = '';
   }
   latestView = view;
   drawBoard();
@@ -115,14 +176,16 @@ function render(view) {
     whiteScore.textContent = captureLabel(view.captures[1]);
   }
 
-  turn.textContent = turnLabel(view);
-  message.textContent = notice || statusMessage(view);
+  turn.textContent = connected() ? turnLabel(view) : ['ended', 'closed'].includes(connectionStatus) ? 'Match ended' : 'Reconnecting';
+  message.textContent = !connected()
+    ? ['ended', 'closed'].includes(connectionStatus) ? 'The match has ended. Reopen the game to continue.' : 'Reconnecting to the match…'
+    : notice || statusMessage(view);
   passButton.hidden = !active;
   resignButton.hidden = !active;
-  passButton.disabled = submitting || !view.canPass;
-  resignButton.disabled = submitting || !view.canResign;
+  passButton.disabled = submitting || !connected() || !view.canPass;
+  resignButton.disabled = submitting || !connected() || !view.canResign;
   rematchButton.hidden = active;
-  rematchButton.disabled = submitting || !view.canRematch;
+  rematchButton.disabled = submitting || !connected() || !view.canRematch;
   const viewerIndex = view.viewerColor === BLACK ? 0 : 1;
   rematchButton.textContent = view.rematchVotes[viewerIndex]
     ? 'Waiting for opponent…'
@@ -130,13 +193,35 @@ function render(view) {
 }
 
 function updateIntersections(view) {
+  columnSelect.disabled = rowSelect.disabled = !canChoose();
+  const selectedEmpty = selectedCell !== null && view.board[selectedCell] === EMPTY;
+  placeButton.disabled = !canChoose() || !selectedEmpty;
+  placeButton.textContent = selectedCell === null ? 'Place stone' : `Place ${coordinate(selectedCell)}`;
+  selection.textContent = selectedCell === null ? 'No intersection selected.' : intersectionLabel(selectedCell, view.board[selectedCell], false, false);
   for (let cell = 0; cell < CELL_COUNT; cell += 1) {
     const button = buttons[cell];
     const value = view.board[cell];
-    const playable = view.canPlay && value === EMPTY && !submitting;
-    button.disabled = !playable;
+    const playable = canChoose() && value === EMPTY;
+    button.disabled = !canChoose();
+    button.classList.toggle('selected', cell === selectedCell);
+    button.setAttribute('aria-pressed', String(cell === selectedCell));
     button.setAttribute('aria-label', intersectionLabel(cell, value, playable, cell === view.lastMove));
   }
+}
+
+function connected() { return ['ready', 'connected'].includes(connectionStatus); }
+function canChoose() { return Boolean(latestView?.canPlay && !submitting && connected()); }
+function coordinate(cell) { return `${COLUMNS[cell % BOARD_SIZE]}${Math.floor(cell / BOARD_SIZE) + 1}`; }
+function choose(cell) {
+  if (!canChoose()) return;
+  selectedCell = cell;
+  columnSelect.value = String(cell % BOARD_SIZE);
+  rowSelect.value = String(Math.floor(cell / BOARD_SIZE));
+  render(latestView);
+}
+function placeSelected() {
+  if (!canChoose() || selectedCell === null || latestView.board[selectedCell] !== EMPTY) return;
+  submit({ type: 'place', x: selectedCell % BOARD_SIZE, y: Math.floor(selectedCell / BOARD_SIZE) });
 }
 
 function drawBoard() {
@@ -268,13 +353,13 @@ function statusMessage(view) {
   }
   if (view.consecutivePasses === 1) return 'Your opponent passed. Pass again to score the game, or keep playing.';
   if (view.lastCaptureCount > 0) return `${view.lastCaptureCount} ${view.lastCaptureCount === 1 ? 'stone was' : 'stones were'} captured.`;
-  return 'Choose an empty intersection, or pass when you are ready to score.';
+  return 'Select an empty intersection, then place your stone. Pass when ready to score.';
 }
 
 function intersectionLabel(cell, value, playable, latest) {
   const x = cell % BOARD_SIZE;
   const y = Math.floor(cell / BOARD_SIZE);
-  const column = 'ABCDEFGHJKLMNOPQRST'[x];
+  const column = COLUMNS[x];
   const occupant = value === EMPTY ? 'empty' : `${colorName(value)} stone`;
   return `${column}${y + 1}, ${occupant}${latest ? ', last move' : ''}${playable ? ', available' : ''}`;
 }

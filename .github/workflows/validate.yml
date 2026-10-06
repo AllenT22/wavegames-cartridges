@@ -16,6 +16,6 @@ jobs:
           node-version: '24'
       - run: node --test tools/wavegame/tests/*.test.mjs
       - run: node tools/wavegame/bin/build-first-party.mjs artifacts/verified-release
-      - run: diff -r releases/1.0.0 artifacts/verified-release
-      - run: cd releases/1.0.0 && sha256sum -c SHA256SUMS-ALL.txt
+      - run: diff -r releases/1.1.0 artifacts/verified-release
+      - run: cd releases/1.1.0 && sha256sum -c SHA256SUMS-ALL.txt
       - run: node scripts/check-distribution.mjs

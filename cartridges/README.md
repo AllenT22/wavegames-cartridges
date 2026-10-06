@@ -28,7 +28,7 @@ node tools/wavegame/bin/wavegame.mjs dev cartridges/connect-four
 Every first-party directory is ordinary cartridge source. Use `wavegame pack`
 to create the `.wavegame` file that can be selected from Downloads or Files.
 The reproducible public packages and checksums are checked into
-`releases/1.0.0/` for direct download.
+`releases/1.1.0/` for direct download.
 
 Build the complete public-unverified release—with all five import files, checksums,
 testing instructions, source, and developer tools—with:

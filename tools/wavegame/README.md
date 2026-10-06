@@ -130,12 +130,12 @@ The bundled client supports both hosts without changing game code:
 
 1. The browser simulator completes a `wavegames:client-ready` /
    `wavegames:attach` MessagePort handshake with the cartridge frame.
-2. The mobile host installs `window.WaveGames = {connect}` before cartridge
+2. The native host installs `window.WaveGames = {connect}` before cartridge
    modules execute and dispatches
    `window.dispatchEvent(new Event('wavegames:runtime-ready'))`.
 
 The bundled client never writes `window.WaveGames`, so it cannot replace the
-mobile runtime.
+native runtime.
 
 ## Package safety
 
@@ -145,3 +145,11 @@ and central metadata, UTF-8 paths, case collisions, encryption, symlinks,
 unsupported compression, ZIP64, overlapping/hidden data, and unsafe expansion
 ratios before returning package files. Files are hashed with SHA-256 and must
 exactly match the generated index.
+
+Host connection has a 10-second deadline; action and storage requests have a
+30-second deadline. `WaveGames.connect({timeoutMs, requestTimeoutMs})` can set
+these deadlines (1–300,000ms). Disconnected/recovering sessions reject pending
+requests; timed-out moves are never automatically resent. Inspect the current
+view before retrying, because an acknowledgement may have been lost after the
+host accepted the action. Rejoining an existing simulator seat keeps its state
+and scoped storage. Native radio recovery remains a host responsibility.

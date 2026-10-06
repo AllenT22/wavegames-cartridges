@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-    <meta name="color-scheme" content="light dark">
+    <meta name="color-scheme" content="dark">
     <title>Go</title>
     <link rel="stylesheet" href="styles.css">
   </head>
@@ -33,10 +33,20 @@
       <p id="message" class="message" aria-live="polite">Connecting to Wave Games…</p>
 
       <section class="board-frame">
-        <div id="board" class="board" role="grid" aria-label="19 by 19 Go board">
+        <div id="board" class="board" role="group" tabindex="0" aria-label="19 by 19 Go board" aria-describedby="board-help">
           <canvas id="board-canvas" aria-hidden="true"></canvas>
           <div id="intersections" class="intersections"></div>
         </div>
+      </section>
+
+      <section class="placement" aria-label="Choose an intersection">
+        <p id="board-help">Select on the board or choose a column and row. Arrow keys move the selection; Enter places a stone.</p>
+        <div class="coordinate-controls">
+          <label>Column <select id="column" disabled></select></label>
+          <label>Row <select id="row" disabled></select></label>
+          <button id="place" class="action primary" type="button" disabled>Place stone</button>
+        </div>
+        <output id="selection" aria-live="polite">No intersection selected.</output>
       </section>
 
       <section class="actions" aria-label="Game actions">
@@ -47,7 +57,7 @@
 
       <details class="rules">
         <summary>Rules used by this cartridge</summary>
-        <p>Black plays first. Captures, suicide prevention, and simple ko are enforced by the authoritative rules module. Two consecutive passes end the game using Chinese-area scoring; White receives 6.5 komi.</p>
+        <p>Black plays first. Captures, suicide prevention, and simple ko apply. Two consecutive passes end the game using Chinese-area scoring; White receives 6.5 komi. Play out disputed or dead groups before passing: all stones left on the board count as alive, and shared empty regions are neutral.</p>
       </details>
     </main>
     <script type="module" src="game.mjs"></script>

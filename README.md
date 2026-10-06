@@ -7,11 +7,11 @@ WaveGames Cartridge API 1 collection.
 
 | Game | Players | Highlights | Import package |
 | --- | ---: | --- | --- |
-| Checkers | 2 | Mandatory captures, multi-jumps, kings, rematches | [`WaveGames-Checkers-1.0.0.wavegame`](releases/1.0.0/WaveGames-Checkers-1.0.0.wavegame) |
-| Chess | 2 | Castling, en passant, promotion, standard draws | [`WaveGames-Chess-1.0.0.wavegame`](releases/1.0.0/WaveGames-Chess-1.0.0.wavegame) |
-| Connect Four | 2 | Complete horizontal, vertical, and diagonal play | [`WaveGames-Connect-Four-1.0.0.wavegame`](releases/1.0.0/WaveGames-Connect-Four-1.0.0.wavegame) |
-| Go | 2 | 19x19 board, captures, simple ko, Chinese-area scoring | [`WaveGames-Go-1.0.0.wavegame`](releases/1.0.0/WaveGames-Go-1.0.0.wavegame) |
-| Color Match | 2-8 | Color/number matching, action cards, last-card declarations, scored rounds | [`WaveGames-Color-Match-1.0.0.wavegame`](releases/1.0.0/WaveGames-Color-Match-1.0.0.wavegame) |
+| Checkers | 2 | Mandatory captures, multi-jumps, kings, rematches | [`WaveGames-Checkers-1.1.0.wavegame`](releases/1.1.0/WaveGames-Checkers-1.1.0.wavegame) |
+| Chess | 2 | Castling, en passant, promotion, standard draws | [`WaveGames-Chess-1.1.0.wavegame`](releases/1.1.0/WaveGames-Chess-1.1.0.wavegame) |
+| Connect Four | 2 | Complete horizontal, vertical, and diagonal play | [`WaveGames-Connect-Four-1.1.0.wavegame`](releases/1.1.0/WaveGames-Connect-Four-1.1.0.wavegame) |
+| Go | 2 | 19x19 board, captures, simple ko, Chinese-area scoring | [`WaveGames-Go-1.1.0.wavegame`](releases/1.1.0/WaveGames-Go-1.1.0.wavegame) |
+| Color Match | 2-8 | Color/number matching, action cards, last-card declarations, scored rounds | [`WaveGames-Color-Match-1.1.0.wavegame`](releases/1.1.0/WaveGames-Color-Match-1.1.0.wavegame) |
 
 Every game contains a deterministic authority rules module, player-filtered
 views, a responsive HTML/JavaScript UI, an English/Japanese manifest, an icon,
@@ -19,11 +19,13 @@ and executable scenario tests covering public-state rules.
 
 ## Import and play
 
-1. Download a `.wavegame` file from [`releases/1.0.0`](releases/1.0.0).
-2. Copy it to Android Downloads or iOS Files.
-3. In a WaveGames 0.3 cartridge-capable build, open **Library**, select
-   **Import cartridge**, and choose the file.
-4. Select **Play here**, or connect a WaveGames board and select **Nearby**.
+1. Download a `.wavegame` file from [`releases/1.1.0`](releases/1.1.0).
+2. Save it to Downloads or Files.
+3. In a cartridge-capable WaveGames build, open **Library**, select
+   **Import cartridge**, and choose the file. Some builds label this
+   **Game Library / Import game**.
+4. Return to **Game Lobby**. The host selects the game and approves the players.
+   For radio play, connect each phone to its own compatible radio first.
 
 Nearby players must import the exact same package. WaveGames compares the
 package digest; cartridge files are not transferred through the board mesh.
@@ -55,7 +57,8 @@ for the Android/iOS sandbox contract.
 ```text
 cartridges/                 complete game source and scenarios
 docs/                       engine, protocol, and validation contracts
-releases/1.0.0/             deterministic import packages and checksums
+releases/1.1.0/             current import packages and checksums
+releases/1.0.0/             retained previous downloads
 runtime/wavegame_runtime/   Flutter, Android, and iOS sandbox runtime
 tools/wavegame/             validator, packer, SDK, tests, and simulator
 ```
@@ -71,3 +74,16 @@ Automated rules, determinism, privacy, archive, and toolkit tests pass. Real
 Files/Downloads import, platform WebView behavior, Bluetooth recovery, board
 routing, and multi-phone play remain physical acceptance tasks for each target
 device/OS combination.
+
+## Version 1.1.0
+
+All five games share graphite and amber controls, visible keyboard focus, and
+connection/error handling. Chess retains draw offers until the opponent responds
+or moves; Checkers resets its automatic no-progress draw clock when a man moves
+or a capture occurs. Go offers exact coordinate selection and explicit placement
+on small screens. Color Match retains its original geometric artwork.
+
+The bundled SDK bounds host requests without automatically retrying a move. If
+an acknowledgement is lost, inspect the current turn before retrying. Every
+player in a match must import the same version. The prior 1.0.0 downloads remain
+available unchanged.

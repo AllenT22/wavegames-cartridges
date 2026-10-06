@@ -402,6 +402,171 @@ export const scenarios = [
     },
   },
   {
+    name: 'malformed and out-of-turn actions never mutate state or consume randomness',
+    players: 8,
+    run({ assert }) {
+      const state = createControlledState(8);
+      state.hands[0][1] = 1;
+      state.hands[0][WILD] = 1;
+      const random = { nextInt() { throw new Error('Rejected input consumed randomness'); }, nextFloat() { throw new Error('Rejected input consumed randomness'); } };
+      for (const [actor, action] of [
+        ['unknown', { type: 'draw' }],
+        ['player-2', { type: 'draw' }],
+        ['player-2', { type: 'play', card: 1 }],
+        ['player-1', null], ['player-1', []], ['player-1', {}],
+        ['player-1', { type: 'play', card: '1' }],
+        ['player-1', { type: 'play', card: -1 }],
+        ['player-1', { type: 'play', card: 54 }],
+        ['player-1', { type: 'play', card: 2 }],
+        ...[null, '0', -1, 4, 0.5].map((color) => ['player-1', { type: 'play', card: WILD, color }]),
+        ['player-1', { type: 'pass' }], ['player-1', { type: 'challenge' }],
+        ['player-1', { type: 'acceptDraw' }], ['player-1', { type: 'rematch' }],
+        ['player-1', { type: 'nextRound' }], ['player-1', { type: 'unsupported' }],
+      ]) {
+        const before = JSON.stringify(state);
+        const result = reduceColorMatch({ state, playerId: actor, action, random });
+        assert.equal(result.accepted, false, JSON.stringify(action));
+        assert.equal(JSON.stringify(state), before);
+      }
+    },
+  },
+  {
+    name: 'challenge window permits only its target to resolve it and exposes no secret evidence',
+    players: 8,
+    run({ assert }) {
+      let state = createControlledState(8);
+      state.hands[0][WILD_DRAW_FOUR] = 1;
+      state.hands[0][1] = 1;
+      state = apply(state, 'player-1', { type: 'play', card: WILD_DRAW_FOUR, color: COLORS.BLUE }, assert);
+      for (const action of [{ type: 'draw' }, { type: 'pass' }, { type: 'play', card: WILD }, { type: 'chooseColor', color: COLORS.RED }]) {
+        mustReject(state, 'player-2', action, assert);
+      }
+      for (let seat = 1; seat <= 8; seat += 1) {
+        const viewer = `player-${seat}`;
+        const view = viewColorMatch({ state, viewer, players: makePlayers(8), revision: 3 });
+        assert.deepEqual(view.legalCards, []);
+        assert.equal(view.canDraw, false);
+        assert.equal(view.canChallenge, seat === 2);
+        assert.equal(view.canAcceptDraw, seat === 2);
+        assert.equal(Object.hasOwn(view, 'wildDrawFourWasLegal'), false);
+        if (seat !== 2) mustReject(state, viewer, { type: 'challenge' }, assert);
+      }
+      state = apply(state, 'player-2', { type: 'challenge' }, assert);
+      assert.equal(state.currentTurn, 'player-2');
+      assert.equal(handSize(state, 'player-1'), 5);
+    },
+  },
+  {
+    name: 'last-card self-correction and catches expire only when a valid turn continues',
+    players: 3,
+    run({ assert }) {
+      let state = createControlledState(3);
+      state.hands[0][1] = 1;
+      state.hands[0][2] = 1;
+      state.hands[1][3] = 1;
+      state.hands[1][4] = 1;
+      state = apply(state, 'player-1', { type: 'play', card: 1 }, assert);
+      mustReject(state, 'player-3', { type: 'draw' }, assert);
+      mustReject(state, 'player-2', { type: 'play', card: 54 }, assert);
+      assert.equal(state.undeclaredPlayerId, 'player-1');
+      let corrected = apply(state, 'player-1', { type: 'declareLastCard' }, assert);
+      assert.equal(corrected.undeclaredPlayerId, null);
+      mustReject(corrected, 'player-3', { type: 'catchMissedDeclaration' }, assert);
+      state = apply(state, 'player-2', { type: 'play', card: 3 }, assert);
+      assert.equal(state.undeclaredPlayerId, 'player-2');
+      mustReject(state, 'player-2', { type: 'catchMissedDeclaration' }, assert);
+      state = apply(state, 'player-3', { type: 'catchMissedDeclaration' }, assert);
+      assert.equal(handSize(state, 'player-2'), 3);
+      assert.equal(state.currentTurn, 'player-3');
+    },
+  },
+  {
+    name: 'final draw penalties contribute exactly to scoring and clear all action controls',
+    players: 3,
+    run({ assert }) {
+      for (const [card, response, penalty] of [[RANKS.DRAW_TWO, null, 2], [WILD_DRAW_FOUR, 'acceptDraw', 4], [WILD_DRAW_FOUR, 'challenge', 6]]) {
+        let state = createControlledState(3);
+        state.hands[0][card] = 1;
+        state.hands[1][9] = 1;
+        state.hands[2][WILD] = 1;
+        state.drawPile = Array(6).fill(8);
+        state = apply(state, 'player-1', { type: 'play', card, color: COLORS.GREEN }, assert);
+        if (response) state = apply(state, 'player-2', { type: response }, assert);
+        assert.equal(state.roundPoints, 59 + penalty * 8);
+        assert.equal(handSize(state, 'player-2'), 1 + penalty);
+        assert.equal(state.currentTurn, null);
+        assert.equal(state.pendingPenalty, 0);
+        assert.equal(state.pendingOutPlayerId, null);
+        for (const player of makePlayers(3)) {
+          const view = viewColorMatch({ state, viewer: player.id, players: makePlayers(3), revision: 4 });
+          assert.deepEqual(view.legalCards, []);
+          for (const flag of ['canDraw', 'canPass', 'canDeclareLastCard', 'canCatchMissedDeclaration', 'canChallenge', 'canAcceptDraw', 'canChooseColor', 'canRematch']) assert.equal(view[flag], false, flag);
+          assert.equal(view.canStartNextRound, true);
+          mustReject(state, player.id, { type: 'draw' }, assert);
+        }
+      }
+    },
+  },
+  {
+    name: 'eight-seat rematch waits for every distinct voter and views own all returned arrays',
+    players: 8,
+    run({ assert }) {
+      let state = createControlledState(8);
+      state.phase = PHASES.FINISHED;
+      state.currentTurn = null;
+      state.winner = 'player-1';
+      state.scores[0] = 500;
+      for (let seat = 1; seat <= 7; seat += 1) {
+        state = apply(state, `player-${seat}`, { type: 'rematch' }, assert);
+        assert.equal(state.phase, PHASES.FINISHED);
+        mustReject(state, `player-${seat}`, { type: 'rematch' }, assert);
+      }
+      state = apply(state, 'player-8', { type: 'rematch' }, assert);
+      assert.equal(state.phase, PHASES.ACTIVE);
+      assert.deepEqual(state.scores, Array(8).fill(0));
+      const before = JSON.stringify(state);
+      for (const player of makePlayers(8)) {
+        const view = viewColorMatch({ state, viewer: player.id, players: makePlayers(8), revision: 1 });
+        for (const value of Object.values(view)) if (Array.isArray(value)) value.fill(null);
+      }
+      assert.equal(JSON.stringify(state), before);
+    },
+  },
+  {
+    name: 'deterministic multi-round simulation conserves the full deck and verifies every seat view',
+    players: 8,
+    run({ assert }) {
+      for (let count = 2; count <= 8; count += 1) {
+        const players = makePlayers(count);
+        let state = createColorMatch({ seed: count * 12345, players });
+        const random = seededRandom(count * 98765);
+        for (let step = 0; step < 400; step += 1) {
+          assert.equal(totalCards(state), DECK_CARDS);
+          assert.ok(state.hands.every((hand) => hand.every((copies) => Number.isInteger(copies) && copies >= 0)));
+          for (const player of players) {
+            const view = viewColorMatch({ state, viewer: player.id, players, revision: step });
+            assert.equal(sum(view.handCounts), handSize(state, player.id));
+            assert.deepEqual(view.cardCounts, state.playerIds.map((id) => handSize(state, id)));
+            if (state.currentTurn !== player.id) assert.deepEqual(view.legalCards, []);
+          }
+          if (state.phase === PHASES.FINISHED) break;
+          if (state.phase === PHASES.ROUND_FINISHED) {
+            state = apply(state, players[0].id, { type: 'nextRound' }, assert, random);
+            continue;
+          }
+          const actor = state.currentTurn;
+          const view = viewColorMatch({ state, viewer: actor, players, revision: step });
+          const card = view.legalCards.find((candidate) => candidate < WILD_DRAW_FOUR) ?? view.legalCards[0];
+          const action = view.canChooseColor ? { type: 'chooseColor', color: step % 4 }
+            : view.canAcceptDraw ? { type: step % 2 ? 'challenge' : 'acceptDraw' }
+            : card !== undefined ? { type: 'play', card, color: step % 4 }
+            : view.canPass ? { type: 'pass' } : { type: 'draw' };
+          state = apply(state, actor, action, assert, random);
+        }
+      }
+    },
+  },
+  {
     name: 'fixed-roster surrender rejects and timeout returns a fail-closed end policy',
     players: 2,
     run({ assert }) {

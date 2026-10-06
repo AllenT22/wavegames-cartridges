@@ -111,6 +111,9 @@ test('Connect Four fixture passes contract and playable victory scenarios', asyn
     'draw fills the board without a winning line',
     'surrender and two rematch votes reset with swapped opener',
     'per-seat views identify each player and isolate mutable copies',
+    'invalid inputs and premature rematch preserve authority and turn',
+    'queued double input accepts only one move and protects finished board',
+    'rematches rotate disc ownership, legal moves and votes across two games',
   ]);
 });
 

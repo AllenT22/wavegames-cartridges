@@ -171,6 +171,84 @@ export const scenarios = [
     },
   },
   {
+    name: 'capture opens a liberty and one connected group touching twice is counted once',
+    players: 2,
+    run({ assert }) {
+      const state = __testing.createPosition({ stones: {
+        a1: WHITE, b1: WHITE, a2: WHITE,
+        c1: BLACK, c2: BLACK, b3: BLACK, a3: BLACK,
+      } });
+      const before = structuredClone(state);
+      const result = reduce({ state, playerId: 'player-1', action: { type: 'place', x: 1, y: 1 } });
+      assert.equal(result.accepted, true);
+      assert.deepEqual(result.state.captures, [3, 0]);
+      for (const coordinate of ['a1', 'b1', 'a2']) assert.equal(result.state.board[__testing.coordinateToCell(coordinate)], '.');
+      assert.deepEqual(state, before);
+    },
+  },
+  {
+    name: 'board edges do not wrap into the next row',
+    players: 2,
+    run({ assert }) {
+      const state = __testing.createPosition({ stones: { s1: WHITE, r1: BLACK, s2: BLACK } });
+      const result = reduce({ state, playerId: 'player-1', action: { type: 'place', x: 0, y: 1 } });
+      assert.equal(result.accepted, true);
+      assert.equal(result.state.board[18], WHITE);
+      assert.equal(result.state.lastCaptureCount, 0);
+    },
+  },
+  {
+    name: 'enclosed empty regions count for their border color without capture bonuses',
+    players: 2,
+    run({ assert }) {
+      const state = __testing.createPosition({ stones: {
+        c4: BLACK, d3: BLACK, d5: BLACK, e4: BLACK,
+        o16: WHITE, p15: WHITE, p17: WHITE, q16: WHITE,
+      } });
+      state.captures = [80, 90];
+      const firstPass = reduce({ state, playerId: 'player-1', action: { type: 'pass' } });
+      const secondPass = reduce({ state: firstPass.state, playerId: 'player-2', action: { type: 'pass' } });
+      assert.equal(secondPass.state.blackScoreHalfPoints, 10);
+      assert.equal(secondPass.state.whiteScoreHalfPoints, 10 + KOMI_HALF_POINTS);
+    },
+  },
+  {
+    name: 'a pass lifts simple ko without permitting an out-of-turn recapture',
+    players: 2,
+    run({ assert }) {
+      const prior = { a2: BLACK, b1: BLACK, c2: BLACK, b2: WHITE, a3: WHITE, c3: WHITE, b4: WHITE };
+      const state = __testing.createPosition({ stones: prior });
+      const capture = reduce({ state, playerId: 'player-1', action: { type: 'place', x: 1, y: 2 } });
+      assert.equal(capture.accepted, true);
+      assert.equal(reduce({ state: capture.state, playerId: 'player-2', action: { type: 'place', x: 1, y: 1 } }).accepted, false);
+      const pass = reduce({ state: capture.state, playerId: 'player-2', action: { type: 'pass' } });
+      assert.equal(reduce({ state: pass.state, playerId: 'player-2', action: { type: 'place', x: 1, y: 1 } }).accepted, false);
+      const elsewhere = reduce({ state: pass.state, playerId: 'player-1', action: { type: 'place', x: 18, y: 18 } });
+      assert.equal(reduce({ state: elsewhere.state, playerId: 'player-2', action: { type: 'place', x: 1, y: 1 } }).accepted, true);
+    },
+  },
+  {
+    name: 'unknown players and malformed actions cannot mutate state, and finished games accept only rematch votes',
+    players: 2,
+    run({ assert }) {
+      const state = __testing.createPosition();
+      const before = structuredClone(state);
+      for (const action of [null, undefined, [], { type: 'place', x: NaN, y: 0 }, { type: 'place', x: 0, y: Infinity }]) {
+        assert.equal(reduce({ state, playerId: 'player-1', action }).accepted, false);
+      }
+      assert.equal(reduce({ state, playerId: 'outsider', action: { type: 'resign' } }).accepted, false);
+      assert.equal(view({ state, viewer: 'outsider', revision: 0 }).canResign, false);
+      assert.equal(reduce({ state, playerId: 'player-1', action: { type: 'rematch' } }).accepted, false);
+      assert.deepEqual(state, before);
+      const finished = reduce({ state, playerId: 'player-2', action: { type: 'resign' } });
+      assert.equal(finished.accepted, true, 'A player may resign while waiting for their turn');
+      assert.equal(finished.state.winner, 'player-1');
+      for (const type of ['pass', 'place', 'resign']) {
+        assert.equal(reduce({ state: finished.state, playerId: 'player-1', action: { type, x: 0, y: 0 } }).accepted, false);
+      }
+    },
+  },
+  {
     name: 'direct rules parity exposes safe controls and immutable public state',
     players: 2,
     run({ assert }) {

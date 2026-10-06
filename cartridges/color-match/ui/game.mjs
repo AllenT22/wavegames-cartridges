@@ -14,6 +14,9 @@ let roster = [];
 let submitting = false;
 let pendingWildCard = null;
 let toastTimer = null;
+let connectionStatus = 'connecting';
+let actionError = '';
+let pickerReturnCard = null;
 
 for (const palette of document.querySelectorAll('.palette')) {
   for (let color = 0; color < COLORS.length; color += 1) {
@@ -28,19 +31,31 @@ for (const palette of document.querySelectorAll('.palette')) {
   }
 }
 
-const game = await WaveGames.connect({ api: 1 });
-roster = game.context.roster ?? game.roster ?? [];
-elements.seat.textContent = `Seat ${game.context.seat} · ${playerName(game.context.playerId)}`;
-game.onRoster((nextRoster) => {
-  roster = nextRoster;
-  if (latestView) render(latestView);
-});
-game.onView(render);
-game.onEvent(showEvent);
-game.onStatus((status) => {
-  if (status !== 'connected') elements.message.textContent = String(status);
-});
-if (game.view) render(game.view);
+let game = null;
+try {
+  game = await WaveGames.connect({ api: 1 });
+  connectionStatus = game.status === 'connecting' || !game.status ? 'connected' : game.status;
+  roster = game.context.roster ?? game.roster ?? [];
+  elements.seat.textContent = `Seat ${game.context.seat} · ${playerName(game.context.playerId)}`;
+  game.onRoster((nextRoster) => {
+    roster = nextRoster;
+    if (latestView) render(latestView);
+  });
+  game.onView(render);
+  game.onEvent(showEvent);
+  game.onStatus((status) => {
+    connectionStatus = status;
+    if (status !== 'connected') closeWildPicker();
+    if (latestView) render(latestView);
+  });
+  if (game.view) render(game.view);
+} catch (error) {
+  connectionStatus = 'closed';
+  elements.seat.textContent = 'Connection unavailable';
+  elements.turn.textContent = 'Unable to connect';
+  elements.message.textContent = `${error instanceof Error ? error.message : String(error)}. Reopen the game to reconnect.`;
+  elements.message.classList.add('error');
+}
 
 elements['draw-pile'].addEventListener('click', () => submit({ type: 'draw' }));
 elements['declare-last-card'].addEventListener('click', () => submit({ type: 'declareLastCard' }));
@@ -58,7 +73,7 @@ elements['wild-picker'].addEventListener('click', (event) => {
 for (const palette of document.querySelectorAll('.palette')) {
   palette.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-color]');
-    if (!button || submitting) return;
+    if (!button || submitting || connectionStatus !== 'connected') return;
     const color = Number(button.dataset.color);
     if (button.dataset.purpose === 'opening') {
       submit({ type: 'chooseColor', color });
@@ -74,13 +89,17 @@ for (const palette of document.querySelectorAll('.palette')) {
 
 function render(view) {
   latestView = view;
+  if (pendingWildCard !== null && (!view.legalCards.includes(pendingWildCard) || connectionStatus !== 'connected')) {
+    closeWildPicker();
+  }
   renderPlayers(view);
   renderTable(view);
   renderHand(view);
   renderActions(view);
   renderMessage(view);
+  if (actionError && connectionStatus === 'connected') elements.message.textContent = actionError;
   elements.round.textContent = `Round ${view.roundNumber}`;
-  elements.direction.textContent = view.direction === 0 ? '↻' : '↺';
+  elements.direction.textContent = view.direction === 0 ? '↻ Clockwise' : '↺ Counterclockwise';
   elements.direction.setAttribute(
     'aria-label',
     view.direction === 0 ? 'Clockwise' : 'Counterclockwise',
@@ -97,12 +116,14 @@ function renderPlayers(view) {
     item.classList.toggle('current', playerId === view.currentTurn);
     item.classList.toggle('vulnerable', playerId === view.undeclaredPlayerId);
     const flags = [
-      playerId === view.dealer ? '<span title="Dealer">D</span>' : '',
+      playerId === view.dealer ? '<span>Dealer</span>' : '',
       playerId === view.undeclaredPlayerId ? '<span class="declaration-flag">1 card?</span>' : '',
     ].join('');
+    const role = [playerId === view.viewer ? 'You' : '', playerId === view.currentTurn ? 'Current turn' : ''].filter(Boolean).join(' · ');
     item.innerHTML = `
       <div class="player-name">${escapeText(playerName(playerId))}${flags}</div>
       <div class="player-stats"><b>${view.cardCounts[index]}</b> cards · <b>${view.scores[index]}</b> pts</div>
+      <div class="player-role">${role}</div>
     `;
     elements.players.append(item);
   }
@@ -111,8 +132,8 @@ function renderPlayers(view) {
 function renderTable(view) {
   elements.discard.replaceChildren(cardElement(view.topCard, { large: true }));
   elements['draw-count'].textContent = String(view.drawPileCount);
-  elements['draw-pile'].disabled = submitting || !view.canDraw;
-  elements['draw-pile'].classList.toggle('available', view.canDraw && !submitting);
+  elements['draw-pile'].disabled = controlsBlocked() || !view.canDraw;
+  elements['draw-pile'].classList.toggle('available', view.canDraw && !controlsBlocked());
   const color = view.currentColor;
   elements['active-color'].className = `color-dot ${color === null ? 'none' : COLORS[color]}`;
   elements['color-name'].textContent = color === null ? 'Choose color' : COLOR_NAMES[color];
@@ -128,7 +149,8 @@ function renderHand(view) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'hand-card';
-      button.disabled = submitting || !legal.has(card);
+      button.dataset.card = String(card);
+      button.disabled = controlsBlocked() || !legal.has(card);
       button.setAttribute('aria-label', `Play ${cardName(card)}`);
       button.append(cardElement(card));
       if (view.drawnCard === card) button.classList.add('drawn');
@@ -150,18 +172,24 @@ function renderActions(view) {
   toggleAction('accept-draw', view.canAcceptDraw);
   toggleAction('next-round', view.canStartNextRound);
   toggleAction('rematch', view.phase === 'finished');
-  elements.rematch.disabled = submitting || !view.canRematch;
+  elements.rematch.disabled = controlsBlocked() || !view.canRematch;
   const viewerIndex = view.playerIds.indexOf(view.viewer);
   elements.rematch.textContent = view.rematchVotes[viewerIndex]
     ? 'Waiting for players…'
     : 'Request rematch';
   elements['opening-colors'].hidden = !view.canChooseColor;
   for (const button of elements['opening-colors'].querySelectorAll('button')) {
-    button.disabled = submitting;
+    button.disabled = controlsBlocked();
   }
 }
 
 function renderMessage(view) {
+  elements.message.classList.toggle('error', Boolean(actionError) || connectionStatus !== 'connected');
+  if (connectionStatus !== 'connected') {
+    elements.turn.textContent = 'Game unavailable';
+    elements.message.textContent = `${String(connectionStatus)}. Reopen the game to reconnect.`;
+    return;
+  }
   if (view.phase === 'finished') {
     elements.turn.textContent = view.winner === view.viewer ? 'You win the match!' : `${playerName(view.winner)} wins`;
     elements.message.textContent = `${playerName(view.winner)} reached ${view.scores[view.playerIds.indexOf(view.winner)]} points.`;
@@ -176,7 +204,7 @@ function renderMessage(view) {
     elements.turn.textContent = 'Choose a color';
     elements.message.textContent = 'Choose a color to start.';
   } else if (view.canChallenge) {
-    elements.turn.textContent = 'Choose color +4';
+    elements.turn.textContent = 'Draw four or challenge';
     elements.message.textContent = 'Draw four, or challenge whether the previous player held the active color.';
   } else if (view.currentTurn === view.viewer) {
     elements.turn.textContent = view.canPass ? 'Play or pass' : 'Your turn';
@@ -192,14 +220,19 @@ function renderMessage(view) {
 }
 
 async function submit(action) {
-  if (submitting) return;
+  if (controlsBlocked() || !game) return;
+  actionError = '';
   submitting = true;
   if (latestView) render(latestView);
   try {
     const result = await game.sendAction(action);
-    if (!result.accepted) showToast(result.reason ?? 'That action is not allowed', true);
+    if (!result.accepted) {
+      actionError = result.reason ?? 'That action is not allowed';
+      showToast(actionError, true);
+    }
   } catch (error) {
-    showToast(error instanceof Error ? error.message : String(error), true);
+    actionError = error instanceof Error ? error.message : String(error);
+    showToast(actionError, true);
   } finally {
     submitting = false;
     if (latestView) render(latestView);
@@ -212,6 +245,8 @@ function cardElement(card, { large = false } = {}) {
   element.className = `card ${color}${large ? ' large' : ''}`;
   element.innerHTML = `<i>${cardSymbol(card)}</i><span class="suit-mark" aria-hidden="true"></span><b>${cardSymbol(card)}</b><i>${cardSymbol(card)}</i>`;
   element.title = cardName(card);
+  element.setAttribute('role', 'img');
+  element.setAttribute('aria-label', cardName(card));
   return element;
 }
 
@@ -231,20 +266,49 @@ function cardName(card) {
   return `${COLOR_NAMES[Math.floor(card / 13)]} ${RANK_NAMES[card % 13]}`;
 }
 
+function controlsBlocked() {
+  return submitting || connectionStatus !== 'connected';
+}
+
 function openWildPicker(card) {
+  if (controlsBlocked() || !latestView?.legalCards.includes(card)) return;
   pendingWildCard = card;
+  pickerReturnCard = card;
   elements['wild-picker'].hidden = false;
+  document.querySelector('.game-shell').inert = true;
   elements['wild-picker'].querySelector('button').focus();
 }
 
 function closeWildPicker() {
+  if (elements['wild-picker'].hidden) return;
   pendingWildCard = null;
   elements['wild-picker'].hidden = true;
+  document.querySelector('.game-shell').inert = false;
+  const target = elements.hand.querySelector(`button[data-card="${pickerReturnCard}"]:not(:disabled)`);
+  target?.focus();
+  pickerReturnCard = null;
 }
+
+elements['wild-picker'].addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeWildPicker();
+  } else if (event.key === 'Tab') {
+    const buttons = [...elements['wild-picker'].querySelectorAll('button:not(:disabled)')];
+    const index = buttons.indexOf(document.activeElement);
+    if (event.shiftKey && index <= 0) {
+      event.preventDefault();
+      buttons.at(-1)?.focus();
+    } else if (!event.shiftKey && index === buttons.length - 1) {
+      event.preventDefault();
+      buttons[0]?.focus();
+    }
+  }
+});
 
 function toggleAction(id, visible) {
   elements[id].hidden = !visible;
-  elements[id].disabled = submitting;
+  elements[id].disabled = controlsBlocked();
 }
 
 function playerName(playerId) {

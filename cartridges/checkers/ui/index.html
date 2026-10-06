@@ -13,18 +13,18 @@
           <p id="seat" class="eyebrow">Connecting…</p>
           <h1>Checkers</h1>
         </div>
-        <div id="turn" class="turn">Waiting for host</div>
+        <div id="turn" class="turn" role="status">Waiting for host</div>
       </header>
       <p id="message" class="message" aria-live="polite"></p>
-      <section class="board-frame">
-        <div id="board" class="board" role="grid" aria-label="Checkers board"></div>
+      <section class="board-frame" aria-label="Board area" tabindex="0">
+        <div id="board" class="board" role="group" aria-label="Checkers board"></div>
       </section>
-      <div class="legend" aria-hidden="true">
+      <div class="legend">
         <span><i class="mini red"></i> Player 1</span>
         <span><i class="mini black"></i> Player 2</span>
       </div>
       <section class="actions">
-        <button id="surrender" class="action" type="button">Surrender</button>
+        <button id="surrender" class="action" type="button" disabled>Surrender</button>
         <button id="rematch" class="action primary" type="button" hidden>Request rematch</button>
       </section>
     </main>

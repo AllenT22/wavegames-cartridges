@@ -22,10 +22,11 @@
       <ol id="players" class="players" aria-label="Players and scores"></ol>
 
       <section class="table" aria-label="Color Match table">
-        <div class="direction" id="direction" aria-label="Direction">↻</div>
-        <button id="draw-pile" class="pile-button" type="button" aria-label="Draw a card">
+        <div class="direction" id="direction">↻ Clockwise</div>
+        <button id="draw-pile" class="pile-button" type="button" disabled aria-label="Draw a card">
           <span class="card card-back"><span class="back-grid" aria-hidden="true">◇</span><b>CM</b></span>
           <span id="draw-count" class="pile-count">0</span>
+          <span class="pile-label">Draw one</span>
         </button>
         <div id="discard" class="discard" aria-label="Top discard"></div>
         <div class="color-indicator">

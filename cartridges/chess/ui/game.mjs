@@ -7,6 +7,10 @@ const glyphs = Object.freeze({
 });
 const promotionNames = Object.freeze(['queen', 'rook', 'bishop', 'knight']);
 const board = document.querySelector('#board');
+const boardHint = document.querySelector('#board-hint');
+new ResizeObserver(() => {
+  boardHint.hidden = board.parentElement.scrollWidth <= board.parentElement.clientWidth;
+}).observe(board.parentElement);
 const seat = document.querySelector('#seat');
 const turn = document.querySelector('#turn');
 const message = document.querySelector('#message');

@@ -91,9 +91,14 @@ test('self-contained SDK uses injected native runtime without overwriting it', a
   const fake = new FakeWindow();
   globalThis.window = fake;
   const session = nativeSession();
+  delete session.onEvent; // Events are optional in the native API 1 contract.
   const injected = { connect: async ({ api }) => (assert.equal(api, 1), session) };
   fake.WaveGames = injected;
-  assert.equal(await connect({ api: 1 }), session);
+  const client = await connect({ api: 1 });
+  assert.equal(client.context, session.context);
+  assert.equal(typeof client.onEvent(() => {}), 'function');
+  assert.deepEqual(await client.sendAction({ type: 'increment' }), { accepted: true, revision: 1 });
+  client.close();
   assert.equal(fake.WaveGames, injected);
   assert.notEqual(fake.WaveGames, WaveGames);
 });
@@ -110,7 +115,9 @@ test('self-contained SDK waits for the native runtime-ready event', async (conte
   const pending = connect({ api: 1, timeoutMs: 1_000 });
   fake.WaveGames = { connect: () => session };
   fake.dispatchEvent(new Event('wavegames:runtime-ready'));
-  assert.equal(await pending, session);
+  const client = await pending;
+  assert.equal(client.context, session.context);
+  client.close();
 });
 
 class FakeWindow extends EventTarget {
@@ -129,6 +136,7 @@ function nativeSession() {
     onView: () => () => {},
     onRoster: () => () => {},
     onStatus: () => () => {},
+    onEvent: () => () => {},
     storage: { get: async () => null, set: async () => null, remove: async () => null },
   };
 }
@@ -143,3 +151,131 @@ function mulberry32Draws(seed, count) {
     return ((value ^ (value >>> 14)) >>> 0) / 0x100000000;
   });
 }
+
+function readyClient(context, details = {}) {
+  const channel = new MessageChannel();
+  const client = new GameClient(channel.port2, { requestTimeoutMs: 20, contextTimeoutMs: 100, ...details });
+  context.after(() => { client.close(); channel.port1.close(); });
+  channel.port1.postMessage({ api: 1, type: 'context', context: { playerId: 'player-1', seat: 1, revision: 0 } });
+  return { client, host: channel.port1 };
+}
+
+test('dropped action times out once, clears pending state, and permits a later acknowledged action', async (context) => {
+  const { client, host } = readyClient(context);
+  await client.ready;
+  let calls = 0;
+  host.on('message', (message) => {
+    calls += 1;
+    if (calls > 1) host.postMessage({ api: 1, type: 'actionResult', callId: message.callId, accepted: true, revision: 1 });
+  });
+  await assert.rejects(client.sendAction({ type: 'increment' }), /Check the current turn/);
+  assert.equal(calls, 1, 'uncertain actions must never be automatically retried');
+  assert.equal(client.pending.size, 0);
+  assert.equal((await client.sendAction({ type: 'increment' })).accepted, true);
+});
+
+test('closed bridge before context rejects readiness instead of hanging', async () => {
+  const channel = new MessageChannel();
+  const client = new GameClient(channel.port2);
+  const rejection = assert.rejects(client.ready, /bridge closed/);
+  client.close();
+  await rejection;
+  channel.port1.close();
+});
+
+test('missing context has a deadline and closes the MessagePort', async () => {
+  const channel = new MessageChannel();
+  const client = new GameClient(channel.port2, { contextTimeoutMs: 15 });
+  await assert.rejects(client.ready, /Timed out/);
+  assert.equal(client.closed, true);
+  channel.port1.close();
+});
+
+test('disconnect rejects in-flight actions and blocks new sends until connected', async (context) => {
+  const { client, host } = readyClient(context, { requestTimeoutMs: 100 });
+  await client.ready;
+  host.on('message', () => host.postMessage({ api: 1, type: 'status', status: 'disconnected' }));
+  await assert.rejects(client.sendAction({ type: 'increment' }), /disconnected/);
+  assert.equal(client.pending.size, 0);
+  await assert.rejects(client.sendAction({ type: 'increment' }), /disconnected/);
+});
+
+test('late action replies and reordered stale views do not revive expired requests or rewind state', async (context) => {
+  const { client, host } = readyClient(context);
+  await client.ready;
+  let callId;
+  host.on('message', (message) => { callId = message.callId; });
+  await assert.rejects(client.sendAction({ type: 'increment' }), /No response/);
+  const view = new Promise(resolve => client.onView(resolve));
+  host.postMessage({ api: 1, type: 'actionResult', callId, accepted: true, revision: 2 });
+  host.postMessage({ api: 1, type: 'view', view: { value: 2 }, revision: 2 });
+  assert.deepEqual(await view, { value: 2 });
+  host.postMessage({ api: 1, type: 'view', view: { value: 1 }, revision: 1 });
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.deepEqual(client.view, { value: 2 });
+  assert.equal(client.revision, 2);
+  assert.equal(client.pending.size, 0);
+});
+
+test('synchronous transport failure clears request timers and pending state', async (context) => {
+  const { client } = readyClient(context);
+  await client.ready;
+  client.port.postMessage = () => { throw new Error('transport unavailable'); };
+  await assert.rejects(client.sendAction({ type: 'increment' }), /transport unavailable/);
+  assert.equal(client.pending.size, 0);
+});
+
+test('injected native session connection and requests have deadlines without resending', async (context) => {
+  const original = globalThis.window;
+  context.after(() => { if (original === undefined) delete globalThis.window; else globalThis.window = original; });
+  const fake = new FakeWindow();
+  globalThis.window = fake;
+  fake.WaveGames = { connect: () => new Promise(() => {}) };
+  await assert.rejects(connect({ timeoutMs: 15 }), /Timed out/);
+  let calls = 0;
+  const session = nativeSession();
+  session.sendAction = () => { calls += 1; return new Promise(() => {}); };
+  session.storage.get = () => new Promise(() => {});
+  fake.WaveGames = { connect: () => session };
+  const client = await connect({ requestTimeoutMs: 15 });
+  await assert.rejects(client.sendAction({ type: 'increment' }), /Check the current turn/);
+  await assert.rejects(client.storage.get('preferences'), /No response/);
+  assert.equal(calls, 1);
+  client.close();
+});
+
+test('native status loss rejects pending operations immediately and reconnect permits new actions', async (context) => {
+  const original = globalThis.window;
+  context.after(() => { if (original === undefined) delete globalThis.window; else globalThis.window = original; });
+  const session = nativeSession(), listeners = new Set();
+  session.onStatus = callback => { listeners.add(callback); return () => listeners.delete(callback); };
+  session.sendAction = () => new Promise(() => {});
+  const fake = new FakeWindow();fake.WaveGames = { connect: () => session };globalThis.window = fake;
+  const client = await connect({ requestTimeoutMs: 1000 });
+  const action = client.sendAction({ type: 'increment' });
+  const rejected = assert.rejects(action, /disconnected/);
+  for (const listener of listeners) listener('disconnected');
+  await rejected;
+  await assert.rejects(client.sendAction({ type: 'increment' }), /disconnected/);
+  session.sendAction = async () => ({ accepted: true, revision: 1 });
+  for (const listener of listeners) listener('connected');
+  assert.equal((await client.sendAction({ type: 'increment' })).accepted, true);
+  client.close();
+});
+
+test('simulator same-seat reconnect obtains the current filtered view and retains scoped storage', async (context) => {
+  const host = new SimulationHost({ rules: counterRules, players: createPlayers(2), seed: 7 });
+  const firstChannel = new MessageChannel(), first = new GameClient(firstChannel.port2);
+  await host.attachSeat(1, firstChannel.port1);await first.ready;
+  await first.storage.set('choice', { sound: false });
+  await first.sendAction({ type: 'increment' });
+  first.close();host.detachSeat(1);
+  await host.dispatchAction(2, { type: 'increment' });
+  const secondChannel = new MessageChannel(), second = new GameClient(secondChannel.port2);
+  context.after(() => { second.close();host.detachSeat(1); });
+  const view = new Promise(resolve => second.onView(resolve));
+  await host.attachSeat(1, secondChannel.port1);await second.ready;
+  assert.equal((await view).value, 2);
+  assert.equal(second.context.revision, 2);
+  assert.deepEqual(await second.storage.get('choice'), { sound: false });
+});

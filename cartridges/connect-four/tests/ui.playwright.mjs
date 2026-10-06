@@ -81,6 +81,27 @@ try {
   await waitText(mobileFrames[1], '#turn', 'Your turn');
   await mobile.locator('iframe').first().screenshot({ path: path.join(evidence, 'mobile-320.png') });
 
+  const dropped = await browser.newPage();
+  dropped.on('pageerror', (error) => errors.push(error.message));
+  await dropped.clock.install();
+  await dropped.goto(base);
+  const droppedFrames = await views(dropped);
+  await dropped.locator('#drop-next').click();
+  await droppedFrames[0].locator('.drop').first().click();
+  await droppedFrames[0].locator('#surrender:disabled').waitFor();
+  await dropped.clock.fastForward(31_000);
+  await droppedFrames[0].locator('#message').filter({ hasText: 'No response from the WaveGames host' }).waitFor();
+  assert.equal(await droppedFrames[0].locator('.disc.red').count(), 0);
+  assert.equal(await droppedFrames[0].locator('.drop:enabled').count(), 7);
+  assert.equal(await droppedFrames[0].locator('#turn').textContent(), 'Your turn');
+  await dropped.locator('.seat-heading button').first().click();
+  await dropped.locator('.seat-heading button').first().click();
+  const rejoined = dropped.locator('iframe').first().contentFrame();
+  await rejoined.locator('#turn').filter({ hasText: 'Your turn' }).waitFor();
+  await rejoined.locator('.drop').first().click();
+  await rejoined.locator('#turn').filter({ hasText: 'Opponent’s turn' }).waitFor();
+  assert.equal(await rejoined.locator('.disc.red').count(), 1);
+
   // A native-session double exercises failure/status paths the simulator cannot emit.
   const native = await browser.newPage({ viewport: { width: 390, height: 844 } });
   native.on('pageerror', (error) => errors.push(error.message));
@@ -88,8 +109,10 @@ try {
     const view = { cells: Array(42).fill(0), turn: 'player-1', winner: null, draw: false, moves: 0,
       winningCells: [], rematchVotes: [false, false], viewer: 'player-1', myDisc: 1, canDrop: Array(7).fill(true), revision: 0 };
     window.testCalls = 0;
+    const statusListeners = new Set();
+    window.testStatus = (status) => statusListeners.forEach((listener) => listener(status));
     window.WaveGames = { connect: async () => ({ context: { seat: 1 }, view,
-      onView: (listener) => { window.testView = listener; }, onStatus: (listener) => { window.testStatus = listener; }, onRoster() {},
+      onView: (listener) => { window.testView = listener; }, onStatus: (listener) => { statusListeners.add(listener); return () => statusListeners.delete(listener); }, onRoster() {}, onEvent() {},
       storage: { get() {}, set() {}, remove() {} },
       sendAction: async () => { window.testCalls += 1; if (window.testCalls === 1) return { accepted: false, reason: 'That column is full' }; throw new Error('Bridge request timed out'); },
     }) };

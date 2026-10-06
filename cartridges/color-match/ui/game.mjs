@@ -97,6 +97,7 @@ function render(view) {
   renderHand(view);
   renderActions(view);
   renderMessage(view);
+  if (actionError && connectionStatus === 'connected') elements.message.textContent = actionError;
   elements.round.textContent = `Round ${view.roundNumber}`;
   elements.direction.textContent = view.direction === 0 ? '↻ Clockwise' : '↺ Counterclockwise';
   elements.direction.setAttribute(
@@ -187,10 +188,6 @@ function renderMessage(view) {
   if (connectionStatus !== 'connected') {
     elements.turn.textContent = 'Game unavailable';
     elements.message.textContent = `${String(connectionStatus)}. Reopen the game to reconnect.`;
-    return;
-  }
-  if (actionError) {
-    elements.message.textContent = actionError;
     return;
   }
   if (view.phase === 'finished') {

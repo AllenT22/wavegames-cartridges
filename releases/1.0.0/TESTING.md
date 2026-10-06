@@ -21,7 +21,6 @@ package contents and exact digests but does not claim publisher signatures.
 | Checkers | 2 | `WaveGames-Checkers-1.0.0.wavegame` | `529ae12ff320ce62c8e06a14ba223fb8d3c307a7cfab94c2a7b2bb99160fa6d1` |
 | Chess | 2 | `WaveGames-Chess-1.0.0.wavegame` | `86a545b57bdb8e76b7b9c61266b6b1c56855e1d507867cf986c20acee361ab50` |
 | Go | 2 | `WaveGames-Go-1.0.0.wavegame` | `b47c4779fb0110aba8daf9506ae66fa10ed865b8703de59d5e3c91b20fb67295` |
-| UNO | 2-8 | `WaveGames-UNO-1.0.0.wavegame` | `407e422ac031141d3b0f6ab5d3bf1ca4b73974b8c27a6df9dc3f62346f445ae8` |
 
 `SHA256SUMS-ALL.txt` verifies the copied release files. `WaveGames-Cartridge-Example-Sources-1.0.0.zip`
 contains every cartridge source file plus the dependency-free API 1 toolkit,

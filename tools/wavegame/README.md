@@ -22,7 +22,7 @@ node tools/wavegame/bin/build-first-party.mjs [output-directory]
 ```
 
 It tests, packs, reads back, and digest-verifies Connect Four, Checkers, Chess,
-Go, and UNO before producing individual import files plus a source-and-toolkit
+and Go before producing individual import files plus a source-and-toolkit
 bundle for public, unsigned distribution. It refuses to replace an existing
 output directory.
 

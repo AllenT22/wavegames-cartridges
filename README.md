@@ -11,12 +11,10 @@ WaveGames Cartridge API 1 collection.
 | Chess | 2 | Castling, en passant, promotion, standard draws | [`WaveGames-Chess-1.0.0.wavegame`](releases/1.0.0/WaveGames-Chess-1.0.0.wavegame) |
 | Connect Four | 2 | Complete horizontal, vertical, and diagonal play | [`WaveGames-Connect-Four-1.0.0.wavegame`](releases/1.0.0/WaveGames-Connect-Four-1.0.0.wavegame) |
 | Go | 2 | 19x19 board, captures, simple ko, Chinese-area scoring | [`WaveGames-Go-1.0.0.wavegame`](releases/1.0.0/WaveGames-Go-1.0.0.wavegame) |
-| UNO | 2-8 | Standard deck, challenges, calls/catches, scoring to 500 | [`WaveGames-UNO-1.0.0.wavegame`](releases/1.0.0/WaveGames-UNO-1.0.0.wavegame) |
 
 Every game contains a deterministic authority rules module, player-filtered
 views, a responsive HTML/JavaScript UI, an English/Japanese manifest, an icon,
-and executable scenario tests. UNO demonstrates private per-seat information;
-the other four demonstrate increasingly complex public-state rules.
+and executable scenario tests covering public-state rules.
 
 ## Import and play
 

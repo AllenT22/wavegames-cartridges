@@ -15,9 +15,9 @@ rules guard, strict manifest/JSON/path validation, canonical cross-language
 digests, ZIP safety, package indexing, authority/view separation, deterministic
 randomness, the UI bridge, and native-runtime handoff.
 
-The first-party release command runs another 71 authority, determinism,
+The first-party release command runs authority, determinism,
 state/view-limit, privacy, and playable-scenario checks across Connect Four,
-Checkers, Chess, Go, and UNO. It packs each source directory, validates the
+Checkers, Chess, and Go. It packs each source directory, validates the
 resulting archive again, and records both the Cartridge API package digest and
 the complete-file SHA-256.
 
@@ -58,5 +58,5 @@ artifact directories remain ignored.
 Automated tests do not prove Files/Downloads import, WebView-version behavior,
 Bluetooth recovery, radio routing, or real multi-phone play. Exercise every
 target Android/iOS version, direct and relayed paths, disconnect/reconnect
-behavior, digest mismatch handling, and the intended 2-8-player roster before
+behavior, digest mismatch handling, and the intended player roster before
 claiming product or physical acceptance.

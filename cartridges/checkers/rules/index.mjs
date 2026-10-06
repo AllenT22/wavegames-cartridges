@@ -62,10 +62,11 @@ export function reduce({ state, playerId, action }) {
   if (rowDistance === 1) {
     if (captureRequired) return rejected('A capture is required');
     next.cells[from] = EMPTY;
+    const advancedMan = !isKing(piece);
     const promoted = promote(piece, to);
     piece = promoted.piece;
     next.cells[to] = piece;
-    next.noProgressMoves = promoted.didPromote
+    next.noProgressMoves = advancedMan
       ? 0
       : Math.min(DRAW_AFTER_NO_PROGRESS, next.noProgressMoves + 1);
     const events = [{ type: promoted.didPromote ? 'promoted' : 'moved', actor, from, to }];
@@ -112,6 +113,7 @@ export function view({ state, viewer, revision }) {
     winner: state.winner,
     draw: state.draw,
     finished: state.finished,
+    finishReason: state.finishReason ?? null,
     forcedPiece: state.forcedPiece,
     noProgressMoves: state.noProgressMoves,
     rematchVotes: [...state.rematchVotes],
@@ -144,6 +146,7 @@ function openingState(playerIds) {
     winner: null,
     draw: false,
     finished: false,
+    finishReason: null,
     forcedPiece: NO_FORCED_PIECE,
     noProgressMoves: 0,
     rematchVotes: [false, false],
@@ -154,6 +157,7 @@ function surrender(state, actorIndex) {
   if (state.finished) return rejected('The game is finished');
   const next = cloneState(state);
   next.finished = true;
+  next.finishReason = 'surrender';
   next.turn = null;
   next.winner = next.playerIds[actorIndex === 0 ? 1 : 0];
   next.draw = false;
@@ -177,6 +181,7 @@ function completeTurn(state, actor, events) {
   const opponent = otherActor(actor);
   if (!actorHasMove(state, opponent)) {
     state.finished = true;
+    state.finishReason = 'blocked';
     state.turn = null;
     state.winner = state.playerIds[actor - 1];
     state.draw = false;
@@ -185,6 +190,7 @@ function completeTurn(state, actor, events) {
   }
   if (state.noProgressMoves >= DRAW_AFTER_NO_PROGRESS) {
     state.finished = true;
+    state.finishReason = 'noProgress';
     state.turn = null;
     state.winner = null;
     state.draw = true;

@@ -14,6 +14,10 @@ Chess proves a larger deterministic rules surface. Go proves that a full
 19-by-19 public board, captures, ko, and deterministic area scoring fit the
 API 1 state/view limits.
 
+`color-match/` uses deterministic matching-card rules with private hands for
+two to eight players and original geometric artwork. See its `RULES.md` for
+the turn, declaration, scoring, and package compatibility details.
+
 Validate and play it with:
 
 ```text
@@ -26,7 +30,7 @@ to create the `.wavegame` file that can be selected from Downloads or Files.
 The reproducible public packages and checksums are checked into
 `releases/1.0.0/` for direct download.
 
-Build the complete public-unverified release—with all four import files, checksums,
+Build the complete public-unverified release—with all five import files, checksums,
 testing instructions, source, and developer tools—with:
 
 ```text

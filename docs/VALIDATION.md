@@ -7,6 +7,7 @@ newer:
 
 ```text
 node --test tools/wavegame/tests/*.test.mjs
+node scripts/check-distribution.mjs
 node tools/wavegame/bin/build-first-party.mjs artifacts/cartridge-release
 ```
 
@@ -17,7 +18,7 @@ randomness, the UI bridge, and native-runtime handoff.
 
 The first-party release command runs authority, determinism,
 state/view-limit, privacy, and playable-scenario checks across Connect Four,
-Checkers, Chess, and Go. It packs each source directory, validates the
+Checkers, Chess, Go, and Color Match. It packs each source directory, validates the
 resulting archive again, and records both the Cartridge API package digest and
 the complete-file SHA-256.
 

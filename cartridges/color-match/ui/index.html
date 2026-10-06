@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>Color Match</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="topbar">
+        <div>
+          <p id="seat" class="eyebrow">Connecting…</p>
+          <h1>Color Match</h1>
+        </div>
+        <div class="round-block">
+          <span id="round">Round 1</span>
+          <strong id="turn">Waiting for host</strong>
+        </div>
+      </header>
+
+      <ol id="players" class="players" aria-label="Players and scores"></ol>
+
+      <section class="table" aria-label="Color Match table">
+        <div class="direction" id="direction" aria-label="Direction">↻</div>
+        <button id="draw-pile" class="pile-button" type="button" aria-label="Draw a card">
+          <span class="card card-back"><span class="back-grid" aria-hidden="true">◇</span><b>CM</b></span>
+          <span id="draw-count" class="pile-count">0</span>
+        </button>
+        <div id="discard" class="discard" aria-label="Top discard"></div>
+        <div class="color-indicator">
+          <span id="active-color" class="color-dot"></span>
+          <span id="color-name">No color</span>
+        </div>
+      </section>
+
+      <p id="message" class="message" aria-live="polite">Waiting for the game…</p>
+
+      <section id="context-actions" class="context-actions" aria-label="Available actions">
+        <button id="declare-last-card" class="action declaration-action" type="button" hidden>Declare one card</button>
+        <button id="catch-missed-declaration" class="action warning" type="button" hidden>Catch missed declaration</button>
+        <button id="pass" class="action" type="button" hidden>Pass</button>
+        <button id="challenge" class="action warning" type="button" hidden>Challenge draw four</button>
+        <button id="accept-draw" class="action" type="button" hidden>Draw 4</button>
+        <button id="next-round" class="action primary" type="button" hidden>Deal next round</button>
+        <button id="rematch" class="action primary" type="button" hidden>Request rematch</button>
+      </section>
+
+      <section id="opening-colors" class="color-choice" hidden>
+        <p>Choose the opening color</p>
+        <div class="palette" data-purpose="opening"></div>
+      </section>
+
+      <section class="hand-zone" aria-labelledby="hand-title">
+        <div class="hand-heading">
+          <h2 id="hand-title">Your hand</h2>
+          <span id="hand-count">0 cards</span>
+        </div>
+        <div id="hand" class="hand"></div>
+      </section>
+    </main>
+
+    <div id="wild-picker" class="picker-backdrop" hidden>
+      <section class="picker" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <h2 id="picker-title">Choose a color</h2>
+        <div class="palette" data-purpose="wild"></div>
+        <button id="cancel-color" class="action" type="button">Cancel</button>
+      </section>
+    </div>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script type="module" src="game.mjs"></script>
+  </body>
+</html>

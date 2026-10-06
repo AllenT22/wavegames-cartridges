@@ -13,6 +13,9 @@ feature lines:
 - Go: 19x19 captures, suicide prevention, simple ko, two-pass ending,
   Chinese-area scoring, and 6.5 komi.
 
+Color Match uses the existing public matching-card reducer with descriptive
+labels, a new package identity, and original geometric card artwork.
+
 Cartridge API 1 uses wire game ID `0`; it therefore avoids provisional compiled
 game-ID collisions. The cartridges are phone-authoritative, and boards forward
 their authenticated traffic without executing cartridge rules or distributing

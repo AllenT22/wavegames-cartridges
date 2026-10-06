@@ -13,18 +13,18 @@
           <p id="seat" class="eyebrow">Connecting…</p>
           <h1>Connect Four</h1>
         </div>
-        <div id="turn" class="turn">Waiting for host</div>
+        <div id="turn" class="turn" aria-live="polite">Waiting for host</div>
       </header>
-      <p id="message" class="message" aria-live="polite"></p>
-      <section id="board" class="board" aria-label="Connect Four board"></section>
-      <section class="actions">
-        <button id="surrender" class="action" type="button">Surrender</button>
+      <p id="message" class="message" aria-live="polite">Waiting for the match…</p>
+      <section class="playfield" aria-label="Connect Four">
+        <div id="columns" class="columns" role="group" aria-label="Choose a column"></div>
+        <div id="board" class="board" role="group" aria-label="Board: rows are counted from the top"></div>
+      </section>
+      <section class="actions" aria-label="Match actions">
+        <button id="surrender" class="action" type="button" disabled>Surrender</button>
         <button id="rematch" class="action primary" type="button" hidden>Request rematch</button>
       </section>
-      <footer>
-        <span><i class="disc red"></i> Player 1</span>
-        <span><i class="disc yellow"></i> Player 2</span>
-      </footer>
+      <footer><span id="my-disc">Red discs: 1 · Yellow discs: 2</span></footer>
     </main>
     <script type="module" src="game.mjs"></script>
   </body>

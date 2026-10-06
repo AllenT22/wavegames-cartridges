@@ -120,6 +120,70 @@ export const scenarios = [
       assert.equal((await host.viewForSeat(2)).cells[0], 0);
     },
   },
+
+  {
+    name: 'invalid inputs and premature rematch preserve authority and turn',
+    players: 2,
+    async run({ host, assert }) {
+      const before = await host.viewForSeat(1);
+      for (const action of [null, [], {}, { type: 'unknown' }, { type: 'drop' },
+        { type: 'drop', column: -1 }, { type: 'drop', column: 7 },
+        { type: 'drop', column: 1.5 }, { type: 'drop', column: '0' }, { type: 'rematch' }]) {
+        const result = await host.dispatchAction(1, action);
+        assert.equal(result.accepted, false);
+        assert.deepEqual(await host.viewForSeat(1), before);
+      }
+      const outOfTurn = await host.dispatchAction(2, { type: 'drop', column: 1 });
+      assert.equal(outOfTurn.accepted, false);
+      assert.deepEqual(await host.viewForSeat(1), before);
+    },
+  },
+  {
+    name: 'queued double input accepts only one move and protects finished board',
+    players: 2,
+    async run({ host, assert }) {
+      const results = await Promise.all([
+        host.dispatchAction(1, { type: 'drop', column: 0 }),
+        host.dispatchAction(1, { type: 'drop', column: 1 }),
+      ]);
+      assert.deepEqual(results.map((result) => result.accepted), [true, false]);
+      assert.equal(host.revision, 1);
+      const surrender = await host.dispatchAction(1, { type: 'surrender' });
+      assert.equal(surrender.accepted, true, 'A player may surrender outside their turn');
+      const ended = await host.viewForSeat(2);
+      assert.deepEqual(ended.winningCells, [], 'Surrender has no four-disc winning line');
+      assert.deepEqual(ended.canDrop, Array(7).fill(false));
+      for (const seat of [1, 2]) {
+        for (const action of [{ type: 'drop', column: 2 }, { type: 'surrender' }]) {
+          const result = await host.dispatchAction(seat, action);
+          assert.equal(result.accepted, false);
+          assert.deepEqual(await host.viewForSeat(2), ended);
+        }
+      }
+    },
+  },
+  {
+    name: 'rematches rotate disc ownership, legal moves and votes across two games',
+    players: 2,
+    async run({ host, assert }) {
+      for (const openingSeat of [2, 1]) {
+        assert.equal((await host.dispatchAction(1, { type: 'surrender' })).accepted, true);
+        assert.equal((await host.dispatchAction(2, { type: 'rematch' })).accepted, true);
+        assert.equal((await host.dispatchAction(1, { type: 'rematch' })).accepted, true);
+        const opener = await host.viewForSeat(openingSeat);
+        const opponent = await host.viewForSeat(openingSeat === 1 ? 2 : 1);
+        assert.equal(opener.myDisc, 1);
+        assert.equal(opponent.myDisc, 2);
+        assert.equal(opener.turn, `player-${openingSeat}`);
+        assert.deepEqual(opener.canDrop, Array(7).fill(true));
+        assert.deepEqual(opponent.canDrop, Array(7).fill(false));
+        assert.deepEqual(opener.rematchVotes, [false, false]);
+        assert.equal((await host.dispatchAction(openingSeat, { type: 'drop', column: 3 })).accepted, true);
+        assert.equal((await host.viewForSeat(openingSeat)).cells[38], 1);
+      }
+    },
+  },
+
 ];
 
 async function play(host, moves, assert) {

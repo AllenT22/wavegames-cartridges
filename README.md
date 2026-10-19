@@ -13,11 +13,12 @@ radio transport are maintained separately; this repository is not an app build.
 
 ## Get the app
 
-[Download WaveGames for Android (.apk)](https://github.com/AllenT22/wavegames-cartridges/releases/download/android-v0.4.0-build35/WaveGames-0.4.0-android.apk)
+[Download WaveGames for Android (.apk)](https://github.com/AllenT22/wavegames-cartridges/releases/download/android-v0.4.2-build37/WaveGames-0.4.2-android.apk)
 
-The current published Android test build is **0.4.0, build 35**, for Android 12
-or newer. Its [release page](https://github.com/AllenT22/wavegames-cartridges/releases/tag/android-v0.4.0-build35)
-includes a SHA-256 checksum. iPhone access is currently limited. Radio and
+The current published Android test build is **0.4.2, build 37**, for Android 12
+or newer. Its [release page](https://github.com/AllenT22/wavegames-cartridges/releases/tag/android-v0.4.2-build37)
+includes a SHA-256 checksum. Update all participating phones together; older
+apps cannot join the new channel protocol. iPhone access is currently limited. Radio and
 multi-phone testing is still in progress; the download is not a claim of
 compatibility with every phone or radio.
 
@@ -39,12 +40,15 @@ the game sources and toolkit. Extract ZIPs before selecting a `.wavegame` file.
 
 ## How it works
 
-WaveGames sends game data over a private MeshCore channel, protected by the
-channel's shared key. Game sessions add their own encryption and message
-authentication between the host and each player. Compatible MeshCore repeaters
-can relay the encrypted traffic without the channel key, when their settings
-and routes allow. The host phone runs the rules; each player receives their own
-view of the game.
+Choose **WaveGames 1, 2, or 3** in the app. Everyone selecting the same number
+uses the same public game channel. WaveGames creates it in an empty radio slot
+if needed. MeshCore handles radio encryption; game sessions add no second
+encryption layer. The host phone runs the rules and sends each seat its view.
+Channel members can read game traffic, including hidden information.
+
+Several lobbies can coexist on one channel. Different channel numbers separate
+discovery and games, but still share LoRa airtime. Compatible repeaters can
+forward packets when radio settings, scope, and forwarding policy allow.
 
 ## Setup
 
@@ -53,10 +57,10 @@ game file.
 
 1. **Install the application.** Download the Android APK above and open it on
    your phone. iPhone access is currently limited.
-2. **Connect to your radio.** In the MeshCore app, set up the same private
-   channel named **WaveGames** on every player's radio, using the same channel
-   key and matching radio settings. Disconnect the MeshCore app, then open
-   WaveGames and connect to your radio.
+2. **Connect to your radio.** Configure matching radio settings and routing
+   scope in the MeshCore app, then disconnect it. In WaveGames, choose the
+   same **Game channel** number as your friends and connect. The app reuses
+   the matching channel or creates it in an empty slot; occupied slots stay intact.
 3. **Add a game.** Save a `.wavegame` file to Downloads or Files. Open
    **Game Library → Import game** in WaveGames and choose the file. Every
    player must import the exact same file.
@@ -107,7 +111,7 @@ starter is a turn-demo scaffold, not a finished game.
 
 ## Versions and trust
 
-The app version (**0.4.0 / build 35**), game release (**1.1.0**), Cartridge API
+The app version (**0.4.2 / build 37**), game release (**1.1.0**), Cartridge API
 (**1**), and runtime plugin (**0.1.0**) are different version numbers. The
 bundled native runtime is a source snapshot, not proof of which plugin revision
 is embedded in the downloadable APK.

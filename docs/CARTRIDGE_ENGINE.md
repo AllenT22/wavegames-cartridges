@@ -100,11 +100,14 @@ event. [Developer guidance](DEVELOPING.md) covers SDK and testing patterns.
 The current app starts games from the main game lobby; Game Library imports
 and manages packages. It does not expose the earlier Play here / Nearby flow.
 The host selects the game and, where applicable, a manifest-bounded room size,
-then approves guests. Play starts after selected seats complete authenticated
+then approves guests. Play starts after selected seats complete session
 confirmation. The roster is fixed after start: no spectators or late joins.
 
-Each guest has a separate encrypted host session. The host serializes accepted
-actions, deduplicates request IDs, and generates a view for each player. Game
+Each guest has an approved host session. On MeshCore, game sessions rely only
+on the shared numbered channel encryption; they do not exchange app keys or
+add another cipher. Seat-filtered views are not cryptographically private
+from other channel members. The host serializes accepted actions, deduplicates
+request IDs, and generates a view for each player. Game
 files never travel through the radio. A player departure or expired liveness
 timeout ends the match; there is no host migration or persisted online resume.
 Transient loss may recover before timeout. Timing is selected by the radio

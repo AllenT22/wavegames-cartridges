@@ -94,3 +94,23 @@ remaining native caveats are in the [runtime README](../runtime/wavegame_runtime
 Keep software, install/launch, UI acceptance, and physical radio acceptance
 separate in results. Simulator delivery, an APK signature, a successful build,
 or a local acknowledgement does not establish range or real multiplayer.
+
+## Android 0.4.2/build 37 publication
+
+The [numbered-channel Android test release](https://github.com/AllenT22/wavegames-cartridges/releases/tag/android-v0.4.2-build37)
+was built from application source `af0b364c161efe278140ba97a73e34026e076960`.
+The app gate passed static analysis, formatting, native bridge build, and
+380 tests. The APK build passed; its ZIP CRC, package/version, API 31 minimum,
+and signature were verified. Its signing certificate matches the previous
+checksum-verified public APK, permitting an in-place signed update.
+
+- File: `WaveGames-0.4.2-android.apk` (67,606,299 bytes)
+- SHA-256: `6ecc2fe98939bffec959ff4445de35e3183af5cdb930d1c0578fa2b78a15219b`
+- Release assets: the APK and its SHA-256 file only
+- No phone installation, physical LoRa/repeater, or crowded-channel acceptance
+  was performed as part of this publication.
+
+The accompanying documentation update passed all 30 toolkit tests, the 96
+first-party game checks, a byte-for-byte rebuild/diff of 1.1.0, and the
+retained-download distribution audit. The existing game packages, toolkit,
+and versioned archives were not changed.

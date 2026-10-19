@@ -25,7 +25,12 @@ and its scenarios for actual behavior rather than assuming tournament-rule parit
 The source ZIPs preserve the exact game/toolkit snapshots used for those
 artifacts. New root/docs guidance does not change their frozen contents.
 
-The separately uploaded Android APK is the 0.4.0/build 35 test candidate.
+The separately uploaded Android APK is the 0.4.2/build 37 test candidate.
+It adds public numbered channels, in-app channel creation, and MeshCore-only
+game encryption. All participating phones must update together. The earlier
+0.4.0/build 35 APK remains at its original release URL.
+Its application source is `af0b364c161efe278140ba97a73e34026e076960`;
+this repository does not publish that private application source.
 Its version is not the cartridge collection version. The runtime plugin in
 this repository is a public source snapshot; it is not a copy of the complete
 current phone app. Package IDs and APIs describe compatibility, not independent

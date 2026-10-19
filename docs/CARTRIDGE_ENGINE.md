@@ -1,124 +1,77 @@
-# WaveGames Cartridge Engine
+# Cartridge API 1 contract
 
-Status: public API 1 implementation contract for WaveGames 0.3.0.
+This reference describes the package/SDK contract in the public repository.
+Phone-host behavior is documented for the separately maintained WaveGames
+application. App version, game version, engine API, and runtime plugin version
+are independent; a declaration in a manifest is not platform test evidence.
 
-WaveGames cartridges are portable, interpreted game packages. A player can
-select a `.wavegame` file in Android Downloads or iOS Files, install it into
-private app storage, and play it without rebuilding the app or firmware.
+## Responsibilities
 
-The stable Tic-Tac-Toe and Battleships implementations remain compiled into
-the app and firmware. Their game IDs, payloads, hosting modes, and existing
-wire vectors do not change.
+| Component | Owns |
+| --- | --- |
+| Rules module | Authoritative JSON state, legal actions, per-player views |
+| Cartridge UI | Rendering, input, sending actions, connection/error feedback |
+| Phone host | Authenticated actors, roster, deterministic RNG, revisions, transport, quotas, storage |
+| MeshCore radio/repeaters | Carrying encrypted packets; no cartridge execution or package transfer |
 
-## Architecture
+Radio games have one authoritative host phone. Only filtered views leave that
+host for other players. The public simulator provides a development authority
+and isolated player views; it is not the full phone application.
 
-Cartridge games use three deliberately separate layers:
+## Manifest and package
 
-1. The rules module owns serializable authoritative game state. It accepts an
-   action attributed by the WaveGames host and returns either a new state or a
-   rejection. It never receives BLE identities or encryption keys.
-2. The UI document renders a player-filtered view and emits explicit actions.
-   It cannot read authoritative state directly.
-3. The WaveGames host owns players, seats, randomness, revisions, request
-   deduplication, storage quotas, connectivity, encryption, and delivery.
+A package is a ZIP containing wavegame.json, the declared rules/UI/icon paths,
+all referenced local assets, and generated META-INF/files.json. The
+[manifest schema](../tools/wavegame/schema/wavegame-manifest.schema.json) and
+[Node validator](../tools/wavegame/src/manifest.mjs) define the public format.
 
-For local play all three layers are on one phone. For Wave play the host phone
-runs the one authoritative rules module and each phone renders only its own
-view. Boards continue to route opaque authenticated WaveWire frames; they do
-not download or execute cartridges.
+Required fields are formatVersion, id, version, title, icon, engineApi,
+entrypoints, orientation, capabilities, and modes. description is optional.
+formatVersion and engineApi are both 1. Rules/UI entrypoints end in .mjs/.html.
+At least one local or wave mode is required. Local supports 1–8 players; wave
+supports 2–8 and requires pace: turn-based. orientation is any, portrait, or
+landscape. Only audio and storage capabilities are accepted.
 
-## Package layout
+META-INF/files.json has shape {"files": [...], "formatVersion": 1}.
+Each file record contains path, size, and sha256. It lists every payload file,
+including wavegame.json, once in UTF-8 path order; it does not list itself.
+The package digest is SHA-256 of the exact canonical index bytes. The canonical
+index fixture is in [testdata](../tools/wavegame/testdata/).
 
-A `.wavegame` file is a deterministic ZIP archive with this minimum layout:
+A match requires identical package ID, engine API, and content digest. Version
+labels alone are not sufficient. ZIP metadata/compression changes need not
+change content identity; a payload edit does. The complete archive SHA-256 in
+a release checksum file is a different hash from the cartridge package digest.
 
-```text
-wavegame.json
-META-INF/files.json
-rules/index.mjs
-ui/index.html
-ui/app.mjs
-ui/style.css
-assets/icon.svg
-```
+The app stages an imported file, validates its structure/index/hashes, then
+installs it into private storage. API 1 public files have no verified publisher
+signature and are shown as Unverified. A digest is not publisher identity.
 
-`wavegame.json` is a strict Cartridge API 1 manifest. It contains:
+## Limits
 
-- a lowercase reverse-domain package ID and semantic package version;
-- localized title and optional description;
-- `engineApi: 1` and `formatVersion: 1`;
-- rules, UI, and icon entrypoints;
-- supported orientation and declared `audio` or `storage` capabilities;
-- local and/or Wave player limits, from 1–8 locally and 2–8 on Wave;
-- `pace: "turn-based"` for every Wave mode.
+Values come from [toolkit constants](../tools/wavegame/src/constants.mjs).
+MiB/KiB below are binary units; runtime limits measure encoded JSON bytes.
 
-`META-INF/files.json` lists every other regular file exactly once, sorted by
-its UTF-8 path, with its byte length and SHA-256 digest. Its exact API 1 shape
-is `{ "files": [...], "formatVersion": 1 }`; it does not contain its own
-digest. The package identity is the SHA-256 digest of the canonical file index.
-ZIP order, timestamps, and compression do not affect compatibility.
-Package paths use portable ASCII segments so Unicode normalization, case, and
-parent-file aliases cannot select different content on Android and Apple filesystems.
-
-Players in one lobby must have the same package ID, engine API, and exact
-package digest. Packages are never transferred over BLE or the Wave mesh.
-
-## Installation and trust
-
-Import is an explicit user action through the system document picker. The app
-copies the selected file into private staging, validates it, and only then
-atomically moves it into content-addressed private storage. It never executes
-from Downloads or Files and never asks for broad storage access.
-
-API 1 accepts structurally valid local packages. They are visibly
-labelled **Unverified**. Publisher signatures and a curated distribution
-catalog are intentionally deferred; no unsigned package may be presented as
-publisher-verified.
-
-Validation limits are:
-
-| Limit | API 1 value |
+| Item | Limit |
 | --- | ---: |
-| Compressed package | 25 MiB |
-| Expanded package | 75 MiB |
-| Regular files | 1,000 |
-| One expanded file | 20 MiB |
-| Path bytes | 255 |
+| ZIP archive | 25 MiB |
+| Expanded archive | 75 MiB |
+| Files | 1,000 |
+| Expanded single file | 20 MiB |
+| Compression expansion ratio | 100:1 |
+| Path | 255 bytes, relative portable ASCII |
+| Authoritative state | 64 KiB |
+| Action | 512 bytes |
+| Player view | 2 KiB |
+| One presentation event | 512 bytes |
+| Scoped native storage | 1 MiB |
 
-The validator rejects encrypted, split, ZIP64, symlink, absolute, drive-letter,
-backslash, dot-segment, duplicate, case-colliding, prefix-colliding,
-overlapping, CRC-mismatched, undeclared, and unsupported-compression entries.
-Limits are checked from metadata before expansion and again while reading.
+The reader rejects unsafe paths, symlinks, file/directory and case collisions,
+duplicate entries, unsupported ZIP metadata/compression, encrypted/split/ZIP64
+archives, CRC errors, overlapping/hidden data, unindexed files, and hash or size
+mismatches. Validation is structural; it does not prove safe or correct gameplay.
 
-## Sandbox and capabilities
-
-Android uses a hardened system WebView with a `wavegame://` resource handler.
-iOS uses `WKURLSchemeHandler` and a nonpersistent `WKWebsiteDataStore`. Both
-platforms serve only files rooted in the installed package directory.
-
-The runtime blocks external networking, ordinary file/content/data URLs,
-navigation outside the cartridge, popups, downloads, file choosers, camera,
-microphone, location, media capture, and native platform permissions. It does
-not expose raw BLE, station IDs, filesystem paths, device identifiers, session
-keys, clipboard, or arbitrary native methods.
-
-Every JavaScript bridge instance has a random channel token. Messages are
-typed, bounded, and validated on both sides. App-mediated storage is namespaced
-by package ID and digest and limited to 1 MiB. A rules call has a 250 ms native
-watchdog plus host-side fail-safe; timeout or renderer failure destroys that
-rules runtime and ends or rejects the operation safely.
-
-Runtime data limits are:
-
-| Value | API 1 maximum |
-| --- | ---: |
-| Authoritative state | 64 KiB canonical JSON |
-| Player action | 512 bytes canonical JSON |
-| Filtered player view | 2 KiB canonical JSON |
-| Rules event | 512 bytes canonical JSON |
-
-## Rules API
-
-The rules entrypoint exports:
+## Rules contract
 
 ```js
 export function create({ seed, players, options, random }) {}
@@ -126,92 +79,50 @@ export function reduce({ state, playerId, action, revision, requestId, random })
 export function view({ state, viewer, players, revision }) {}
 ```
 
-`reduce` returns either `{ accepted: true, state, events? }` or
-`{ accepted: false, reason? }`. WaveGames increments the revision once
-after an accepted action and never after a rejection. `playerId` is derived
-from the authenticated seat; an action payload cannot select or override it.
+create returns state. reduce returns {accepted: true, state, events?} or
+{accepted: false, reason?}. The host increments revision after an accepted
+transition, not after a rejected action. Actor identity comes from the approved
+session, not a field in action. view returns only the requested player's data.
 
-API 1 does not call an optional timeout reducer. A player leaving or reaching
-the 45-second timeout ends a nearby match. This keeps the fixed roster and RNG
-transaction contract unambiguous; a cartridge-specific timeout transition is
-reserved for a later engine API.
+create/reduce share the host's seeded RNG stream via nextFloat/nextInt.
+Rejected actions must not advance committed RNG state. view receives no random
+stream. Rules must use finite JSON and must not depend on clocks, ambient
+entropy, UI state, network, browser storage, or device services.
 
-`events` are bounded presentation hints for local play. Nearby play distributes
-only viewer-filtered views in API 1 because a single reducer event has no
-per-viewer privacy contract. Nearby UI should derive animation and audio cues
-from successive filtered views.
+API 1 invokes create/reduce/view, not an optional timeout reducer. General
+presentation events are delivered in the simulator/local hosts. Radio play
+sends filtered views, so derive radio presentation cues from those views.
+A game's hidden information must never enter another player's view or a public
+event. [Developer guidance](DEVELOPING.md) covers SDK and testing patterns.
 
-Randomness is supplied by the host through a deterministic, replayable random
-source. Rules and saved state must be finite JSON. UI objects, DOM nodes,
-functions, clocks, sockets, and native handles are not valid state.
+## Phone multiplayer behavior
 
-The UI connects with the bundled SDK, listens for session/roster/view/status
-messages, and sends actions. Rendering code never imports the rules module.
+The current app starts games from the main game lobby; Game Library imports
+and manages packages. It does not expose the earlier Play here / Nearby flow.
+The host selects the game and, where applicable, a manifest-bounded room size,
+then approves guests. Play starts after selected seats complete authenticated
+confirmation. The roster is fixed after start: no spectators or late joins.
 
-## Multiplayer contract
+Each guest has a separate encrypted host session. The host serializes accepted
+actions, deduplicates request IDs, and generates a view for each player. Game
+files never travel through the radio. A player departure or expired liveness
+timeout ends the match; there is no host migration or persisted online resume.
+Transient loss may recover before timeout. Timing is selected by the radio
+transport, not fixed universally at the prototype's 6/45-second thresholds;
+see [protocol notes](PROTOCOL.md).
 
-Cartridge Wave play is phone-authority only in API 1:
+## Native runtime snapshot
 
-- 2–8 fixed seats; no spectators or late joins;
-- the host manually approves guests and explicitly starts after the minimum
-  player count is present;
-- the roster is immutable after start and disconnected seats remain reserved;
-- pairwise P-256/AES-GCM sessions are used for each guest, never a group key;
-- the host serializes mutations, deduplicates requests, increments revisions,
-  and produces one filtered view per seat;
-- acknowledgements pace one application fragment in flight per peer;
-- at most six reliable application envelopes are pending globally;
-- the host emits a 2-second heartbeat, treats 6 seconds as recovering, and
-  ends the fixed-roster match at 45 seconds;
-- host loss ends the match; API 1 has no host migration or persisted online
-  resume.
+The included plugin supplies document picking and separate visible/rules
+WebViews on Android/iOS. In this public snapshot both platforms use a local
+wavegame://cartridge/ origin. An embedding host still must implement package
+installation, roster, sessions, revision/RNG state, storage quotas, delivery,
+and action/storage replies. This plugin alone is not a multiplayer app.
 
-All authenticated WaveWire messages, including heartbeat, leave, and error,
-use the outer mesh `session` packet type. Wire game ID `0` is the explicit
-cartridge discriminator. Lobby negotiation carries package identity and API
-compatibility; ordinary gameplay traffic is authenticated.
-
-The mobile Library exposes separate **Play here** and **Nearby** actions when a
-manifest supports both modes. Nearby play reuses an already connected board,
-then constructs the cartridge-only host or guest gateway without widening the
-compiled-game controller or enum. The host sees queued approval cards, selects
-the manifest-bounded capacity, and explicitly starts; guests can see mismatched
-lobbies but cannot join them.
-
-## Developer workflow
-
-The repository includes a dependency-free Node 24 tool:
-
-```text
-wavegame create <directory>
-wavegame validate <directory-or-wavegame>
-wavegame pack <directory> [output.wavegame]
-wavegame inspect <package.wavegame>
-wavegame test <trusted-source-directory>
-wavegame dev <directory>
-```
-
-The local simulator runs one authoritative rules Web Worker and 2–8 isolated player
-views using the same bridge envelopes as mobile. It can reset a match, copy a
-replay, disconnect/reconnect a seat, and inject delay, loss, duplication, and
-reordering. `test` verifies exports, deterministic replay, filtered views,
-limits, manifest/index integrity, and cartridge tests before packaging.
-
-## Compatibility and release gates
-
-The following are release invariants:
-
-- existing Tic-Tac-Toe and Battleships byte vectors remain unchanged;
-- existing board-host and phone-host flows remain available;
-- firmware forwarding of wire game ID 0 is covered by host tests;
-- native, sanitizer, mobile, bench, endpoint, and relay builds remain green;
-- malformed-package and sandbox escape tests pass on both Android and iOS;
-- Connect Four freezes API 1,
-  Checkers and Chess prove complex-turn and full-rules parity, and Go proves a
-  full 19-by-19 public board with deterministic area scoring;
-- compiled provisional versions of converted games are removed only after
-  golden action-log and filtered-view parity passes.
-
-Automated tests are software evidence only. Downloads/Files import, sandbox
-behavior, multi-phone recovery, and 2–8 player operation still require the
-documented physical acceptance matrix before a public release claim.
+The sandbox blocks external resources and native device permissions and uses
+bounded typed bridge messages. Its 250 ms native watchdog is best-effort, not
+a guaranteed hard CPU interrupt; the Dart fail-safe is 500 ms. A timed-out or
+destroyed rules runtime cannot be reused or commit an unconfirmed transition.
+See the [runtime README](../runtime/wavegame_runtime/README.md) and
+[security contract](../runtime/wavegame_runtime/SECURITY_CONTRACT.md) for precise
+snapshot behavior and platform-specific caveats.

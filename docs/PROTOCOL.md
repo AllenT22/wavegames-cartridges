@@ -1,83 +1,119 @@
 # Radio and protocol notes
 
-Cartridge authors use the game SDK, not radio commands. The complete phone
-transport is maintained outside this repository. These notes describe the
-MeshCore integration used by the published Android 0.4.0/build 35 candidate and
-explain what a cartridge may rely on. They are not a standalone radio-driver
-implementation or a claim that every firmware/repeater combination is tested.
+These notes describe the MeshCore game transport in Android **0.4.2/build 37**.
+The complete phone app and radio driver are maintained separately. Cartridge
+code uses the SDK and does not issue radio commands or manage encryption.
+The public runtime/plugin snapshot is not the complete phone application.
 
-## Channel and forwarding
+## Channels and setup
 
-Each phone connects by Bluetooth to its own MeshCore Companion radio. The app
-uses MeshCore channel data over LoRa, with the same private channel named
-WaveGames and the same random channel key on participating radios. Local
-channel slots may differ. The integration targets Companion v1.17.1; compatible
-repeaters must support group-data forwarding and compatible radio settings,
-routing scope, and policy. Repeaters can forward ciphertext without the key;
-phone-facing Companion endpoints are not general relays.
+Each phone connects over Bluetooth to its own stock MeshCore Companion radio.
+Players select **WaveGames 1, 2, or 3** inside WaveGames. Each number has the
+same publicly known shared key on every app. Local radio slot indices may
+be different. WaveGames reads available slots, reuses a matching channel, or
+creates the selected one using stock Companion `SET_CHANNEL` in a confirmed
+empty slot. It reads the result back and preserves occupied slots, including
+similarly named channels with a different key. Full radios require a free slot.
 
-Configure the radio in the MeshCore app before connecting WaveGames. The app
-uses the saved identity, channel, radio settings, and scope. Do not assume a
-live Bluetooth connection can be transferred between apps; disconnect the
-current app first. See [player setup](PLAYING.md).
+Configure matching RF settings and routing scope in MeshCore first, then
+release that app's Bluetooth connection. WaveGames leaves identity, RF
+parameters, scope, power, bonds, and existing occupied channels intact. No
+custom radio firmware is required. This integration targets Companion v1.17.1.
 
-## Encryption and its limits
+Several lobbies can coexist on the same channel because each has a session ID.
+Different numbers partition discovery and game traffic, not RF capacity: radios
+on the same RF preset still share airtime. Channels avoid requiring individual
+MeshCore contact exchange for lobby discovery. Targeted game packets can still
+use a saved direct route; using a channel does not force all traffic to flood.
+Compatible repeaters can forward packets without holding the channel key, when
+RF parameters, scope, and forwarding policy allow. Companion endpoints do not
+normally repeat transit traffic.
 
-MeshCore's shared channel key protects channel traffic. Separately, the
-WaveGames host negotiates a pairwise P-256 ECDH session with each approved
-player, derives directional keys using HKDF-SHA256, and protects match frames
-with AES-256-GCM and replay checks. Channel privacy and game-session protection
-are different layers; a shared channel key is not a per-player identity.
+## Phone-to-phone delivery
 
-Message authentication validates traffic under the negotiated session key.
-The key exchange does not independently verify a real-world player identity
-or authenticate the handshake against an active man-in-the-middle. Do not
-advertise approval or encryption as such a guarantee. Keep channel keys and
-session material out of cartridge code, diagnostics, screenshots, and reports.
+1. The host phone broadcasts a lobby through its radio on the selected channel.
+2. The guest radio decrypts the channel packet and delivers it over Bluetooth.
+   The guest app lists a lobby only when its package ID, API, and exact digest
+   match the installed game.
+3. The guest requests to join; the host approves and assigns a seat. The compact
+   join exchanges no app public keys. Game files never travel over the radio.
+4. A guest action is encoded by the app and passed over Bluetooth to its radio.
+   MeshCore encrypts the channel datagram, sends it directly or through
+   repeaters, and the host radio decrypts it before forwarding it to the phone.
+5. The host phone validates the action, session, and seat, rejects duplicates,
+   applies the rules, and returns the relevant view and acknowledgement through
+   the same radio path. Radios never execute cartridge rules.
+6. Bounded retries preserve logical request identity so ordinary repeated
+   actions do not execute twice. Reconnection restores the host's current view.
+   A local command OK does not prove remote receipt or successful gameplay.
 
-## Host-owned delivery
+## Encryption and trust
 
-Imported cartridges use WaveWire game ID 0. Lobby negotiation identifies the
-package ID, engine API, exact content digest, and roster. The host, rather than
-the game, owns authenticated actors, request deduplication, fragmentation,
-acknowledgements, recovery snapshots, and delivery retries. A successful local
-Bluetooth/radio command does not establish remote receipt.
+MeshCore channel encryption is the only encryption for game logic on this
+adapter. WaveGames adds no P-256 key exchange, AES-GCM cipher, or application
+16-byte authentication tag. The numbered channels are intentionally public.
+Other channel members can read game traffic, including hidden hands or boards,
+and construct forged packets. Host approval and station/session checks organize
+gameplay; they are not cryptographic player identity.
 
-The Companion channel-data limit used by this integration is 163 bytes. Its
-30-byte WaveGames envelope leaves up to 133 bytes per fragment. An API 1 action
-or player view can span multiple fragments; the cartridge author must still
-meet the 512-byte action and 2-KiB view limits. Reduce view size and action
-frequency rather than streaming animation, audio, or continuous UI state.
+The host still validates rules, derives actors from approved sessions rather
+than action-supplied player IDs, applies sequence/replay checks, deduplicates
+requests, and generates seat-filtered views. Filtering prevents ordinary UIs
+from receiving the full authority state; it does not make the on-air views
+secret from other channel members. The retained ESP-NOW adapter and separate
+private messaging protocols have their own protection and are not changed by
+this game-traffic profile.
 
-The current host's MeshCore LoRa timing profile is:
+## Framing and efficiency
+
+The MeshCore application datagram limit is **163 bytes**. The WaveGames v2
+envelope uses 30 bytes, leaving 133 bytes for a WaveWire fragment. Channel game
+sessions set `channelProtected` (`0x08`) and carry zero app-tag bytes. Imported
+games use WaveWire game ID 0 and WCP records capped at 101 bytes on this path;
+fragmented records use 85 data bytes plus a 16-byte WCP fragment header.
+
+At normal BLE capacity with a short route,
+`30-byte envelope + 28-byte WaveWire header + 101-byte WCP + 4-byte CRC = 163`.
+This keeps a normal application fragment in one radio datagram. Small BLE
+capacities or long explicit routes can still cause transport fragmentation.
+Large actions/views require multiple application fragments. API 1 limits stay
+512 bytes per action and 2 KiB per player view. Keep updates small and infrequent;
+do not stream animations, audio, or continuous UI state.
+
+Application acknowledgements own imported-game reliability, avoiding redundant
+transport ACKs. The host owns fragmentation, sequence checks, request identity,
+state recovery, and retries; cartridges should act on confirmed host views.
+
+The current MeshCore LoRa profile uses:
 
 | Operation | Interval/deadline |
 | --- | ---: |
-| Lobby advertisement | 30 seconds |
-| Lobby expiry | 90 seconds |
+| Lobby advertisement / expiry | 30 / 90 seconds |
 | Heartbeat | 45 seconds |
 | Join/approval window | 2 minutes |
 | Absolute join timeout | 5 minutes |
-| Secure confirmation timeout | 90 seconds |
-| Peer marked unavailable/recovering | 2 minutes of silence |
+| Join confirmation timeout | 90 seconds |
+| Peer marked recovering | 2 minutes of silence |
 | Peer timeout | 10 minutes of silence |
 | Reliable fragment acknowledgement | 30 seconds |
+| Fragment reassembly idle timeout | 120 seconds |
 
-These are host defaults for that implementation, not latency guarantees or
-cartridge API constants. They differ from the fast prototype profile. A game
-must react to host status and confirmed views, not run its own radio timer.
-The SDK's 30-second Promise deadline is also a separate boundary: if a request
-times out, a move may still have arrived. Do not automatically resend it.
+These are implementation defaults, not latency guarantees or SDK constants.
+The SDK's 30-second Promise deadline is separate: a timed-out action may have
+arrived. Check the current view before offering a retry rather than resending
+blindly. MeshCore's small RAM queue is shared with other apps and message types;
+consumed messages may no longer be waiting for MeshCore. It does not guarantee
+offline delivery or transparent mailbox handoff.
 
-MeshCore's small RAM queue is shared with other message types and apps. A
-message consumed while WaveGames owns the radio may no longer be available to
-the MeshCore app. Queue contents do not provide guaranteed offline delivery or
-transparent mailbox handoff. Restore game state from the host when reconnecting.
+## Migration and acceptance
 
-## Scope
+Every participating phone must update together. Envelope v2 deliberately
+rejects older clients instead of mixing encryption and fragment-size contracts.
+Existing cartridge packages and the Cartridge API remain unchanged. Old APKs
+and frozen cartridge releases retain their original setup instructions.
 
-Earlier ESP-NOW gateway firmware and its envelope/BLE details describe a
-prototype transport. They are not MeshCore setup instructions or part of the
-public cartridge-authoring interface. Retaining a historical wire ID does not
-make a legacy game a supported built-in. Neither the radio driver, firmware,
-nor the complete WaveGames application is supplied by this repository.
+Automated tests and package checks do not prove physical LoRa, repeater,
+background/reconnect, or crowded-channel play. Test both host directions,
+different local channel slots, separate numbered channels, full radio storage,
+join/action/retry/recovery, and representative player counts with actual phones
+and radios. See [player setup](PLAYING.md) and [validation](VALIDATION.md).
